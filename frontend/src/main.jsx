@@ -10,9 +10,9 @@ import {
 const theme = createTheme({
   palette: {
     mode: "dark",
-    primary: { main: "#2563eb" }, // azul
+    primary: { main: "#2563eb" },
     background: {
-      default: "#020617", // fondo general
+      default: "#020617", 
       paper: "#020617",
     },
   },

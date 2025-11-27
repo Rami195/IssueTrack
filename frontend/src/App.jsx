@@ -23,12 +23,12 @@ export default function App() {
     initAuth,
   } = useAppStore();
 
-  // Al montar, cargamos token desde localStorage y user/me
+  
   useEffect(() => {
     initAuth();
   }, [initAuth]);
 
-  // Cuando hay token válido, traemos datos
+  
   useEffect(() => {
     if (token) {
       fetchProjects();
@@ -36,15 +36,17 @@ export default function App() {
     }
   }, [token, fetchProjects, fetchTickets]);
 
+
   let content = null;
   if (currentView === "tickets") content = <TicketsView />;
   else if (currentView === "projects") content = <ProjectsView />;
   else content = <DashboardView />;
 
-  // 🔐 Si no hay token, mostramos solo login/registro
+
   if (!token) {
     return <AuthView />;
   }
+
 
   return (
     <Box

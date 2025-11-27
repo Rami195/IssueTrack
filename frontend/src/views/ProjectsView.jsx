@@ -187,10 +187,10 @@ export default function ProjectsView() {
   return (
     <>
       <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>
-        Projects
+        Proyectos
       </Typography>
 
-      {/* Form creación */}
+      {/* Formulario de creación */}
       <Box
         component="form"
         onSubmit={handleCreate}
@@ -203,21 +203,21 @@ export default function ProjectsView() {
         }}
       >
         <TextField
-          label="Name"
+          label="Nombre"
           size="small"
           value={name}
           onChange={(e) => setName(e.target.value)}
           sx={{ minWidth: 240 }}
         />
         <TextField
-          label="Description"
+          label="Descripción"
           size="small"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           sx={{ minWidth: 260 }}
         />
         <Button variant="contained" type="submit">
-          Add project
+          Agregar proyecto
         </Button>
       </Box>
 
@@ -233,13 +233,13 @@ export default function ProjectsView() {
       >
         <TextField
           select
-          label="Filter"
+          label="Filtro"
           size="small"
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
           sx={{ minWidth: 180 }}
         >
-          <MenuItem value="all">All projects</MenuItem>
+          <MenuItem value="all">Todos los proyectos</MenuItem>
         </TextField>
       </Box>
 
@@ -276,11 +276,13 @@ export default function ProjectsView() {
                     direction={sortField === "name" ? sortDirection : "asc"}
                     onClick={() => handleSortColumn("name")}
                   >
-                    Name
+                    Nombre
                   </TableSortLabel>
                 </TableCell>
 
-                <TableCell sx={{ color: "grey.400" }}>Description</TableCell>
+                <TableCell sx={{ color: "grey.400" }}>
+                  Descripción
+                </TableCell>
 
                 <TableCell
                   sx={{ color: "grey.400" }}
@@ -295,7 +297,7 @@ export default function ProjectsView() {
                     }
                     onClick={() => handleSortColumn("created_at")}
                   >
-                    Created
+                    Creado
                   </TableSortLabel>
                 </TableCell>
 
@@ -312,12 +314,12 @@ export default function ProjectsView() {
                     }
                     onClick={() => handleSortColumn("updated_at")}
                   >
-                    Updated
+                    Actualizado
                   </TableSortLabel>
                 </TableCell>
 
                 <TableCell sx={{ color: "grey.400" }} align="right">
-                  Actions
+                  Acciones
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -340,14 +342,14 @@ export default function ProjectsView() {
                       onClick={() => handleOpenEdit(p)}
                       sx={{ mr: 1 }}
                     >
-                      Edit
+                      Editar
                     </Button>
                     <Button
                       size="small"
                       color="error"
                       onClick={() => handleDelete(p.id)}
                     >
-                      Delete
+                      Eliminar
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -357,7 +359,7 @@ export default function ProjectsView() {
                 <TableRow>
                   <TableCell colSpan={6}>
                     <Typography variant="body2" sx={{ color: "grey.400" }}>
-                      No projects found.
+                      No se encontraron proyectos.
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -367,24 +369,24 @@ export default function ProjectsView() {
         </CardContent>
       </Card>
 
-      {/* Modal edición */}
+      {/* Modal de edición */}
       <Dialog
         open={editOpen}
         onClose={handleCloseEdit}
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Edit project</DialogTitle>
+        <DialogTitle>Editar proyecto</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <TextField
-              label="Name"
+              label="Nombre"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               autoFocus
             />
             <TextField
-              label="Description"
+              label="Descripción"
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
               multiline
@@ -393,9 +395,9 @@ export default function ProjectsView() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseEdit}>Cancel</Button>
+          <Button onClick={handleCloseEdit}>Cancelar</Button>
           <Button onClick={handleSaveEdit} variant="contained">
-            Save
+            Guardar
           </Button>
         </DialogActions>
       </Dialog>

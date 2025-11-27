@@ -26,7 +26,7 @@ export default function TopBar({ userName }) {
     >
       <TextField
         size="small"
-        placeholder="Search tickets, users..."
+        placeholder="Buscar tickets, proyectos..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         sx={{
@@ -48,10 +48,10 @@ export default function TopBar({ userName }) {
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
         <Box sx={{ textAlign: "right" }}>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {userName || "Admin User"}
+            {userName || "Usuario Admin"}
           </Typography>
           <Typography variant="caption" sx={{ color: "grey.400" }}>
-            Administrator
+            Administrador
           </Typography>
         </Box>
         <IconButton>

@@ -24,8 +24,7 @@ export default function DashboardView() {
     tickets,
     loading,
     error,
-    searchQuery,
-    setSearchQuery,
+    searchQuery, // lo seguimos usando para filtrar, viene del TopBar
     setView,
   } = useAppStore();
 
@@ -60,7 +59,7 @@ export default function DashboardView() {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Header */}
+      {/* Header SIN barra de búsqueda propia */}
       <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
@@ -69,17 +68,6 @@ export default function DashboardView() {
           <Typography variant="body2" sx={{ color: "grey.400" }}>
             Bienvenido, {userName || "User"} 👋
           </Typography>
-        </Box>
-
-        {/* Buscador global */}
-        <Box sx={{ minWidth: 260 }}>
-          <TextField
-            size="small"
-            fullWidth
-            label="Search projects/tickets"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
         </Box>
       </Box>
 
@@ -105,7 +93,7 @@ export default function DashboardView() {
           >
             <CardContent>
               <Typography variant="body2" sx={{ color: "grey.400", mb: 1 }}>
-                Projects
+                Proyectos
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
                 {totalProjects}
@@ -115,7 +103,7 @@ export default function DashboardView() {
                 sx={{ mt: 1 }}
                 onClick={() => setView("projects")}
               >
-                View projects
+                Ver proyectos
               </Button>
             </CardContent>
           </Card>
@@ -141,7 +129,7 @@ export default function DashboardView() {
                 sx={{ mt: 1 }}
                 onClick={() => setView("tickets")}
               >
-                View tickets
+                Ver tickets
               </Button>
             </CardContent>
           </Card>
@@ -157,7 +145,7 @@ export default function DashboardView() {
           >
             <CardContent>
               <Typography variant="body2" sx={{ color: "grey.400", mb: 1 }}>
-                Open tickets
+                Tickets abiertos
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
                 {openTickets}
@@ -190,10 +178,10 @@ export default function DashboardView() {
                 }}
               >
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  Recent projects
+                  Proyectos recientes
                 </Typography>
                 <Button size="small" onClick={() => setView("projects")}>
-                  See all
+                  Ver todos
                 </Button>
               </Box>
               <Divider sx={{ mb: 1.5, borderColor: "rgba(148,163,184,0.3)" }} />
@@ -201,8 +189,8 @@ export default function DashboardView() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ color: "grey.400" }}>Name</TableCell>
-                    <TableCell sx={{ color: "grey.400" }}>Created</TableCell>
+                    <TableCell sx={{ color: "grey.400" }}>Nombre</TableCell>
+                    <TableCell sx={{ color: "grey.400" }}>Creado</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -223,7 +211,7 @@ export default function DashboardView() {
                           variant="body2"
                           sx={{ color: "grey.400" }}
                         >
-                          No projects found.
+                          No se encontraron proyectos.
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -236,7 +224,7 @@ export default function DashboardView() {
                   variant="caption"
                   sx={{ mt: 1, display: "block", color: "grey.500" }}
                 >
-                  Loading projects...
+                  Cargando proyectos...
                 </Typography>
               )}
             </CardContent>
@@ -261,10 +249,10 @@ export default function DashboardView() {
                 }}
               >
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  Recent tickets
+                  Tickets recientes
                 </Typography>
                 <Button size="small" onClick={() => setView("tickets")}>
-                  See all
+                  Ver todos
                 </Button>
               </Box>
               <Divider sx={{ mb: 1.5, borderColor: "rgba(148,163,184,0.3)" }} />
@@ -272,8 +260,8 @@ export default function DashboardView() {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ color: "grey.400" }}>Title</TableCell>
-                    <TableCell sx={{ color: "grey.400" }}>Status</TableCell>
+                    <TableCell sx={{ color: "grey.400" }}>Título</TableCell>
+                    <TableCell sx={{ color: "grey.400" }}>Estado</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -302,7 +290,7 @@ export default function DashboardView() {
                           variant="body2"
                           sx={{ color: "grey.400" }}
                         >
-                          No tickets found.
+                          No se encontraron tickets.
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -315,7 +303,7 @@ export default function DashboardView() {
                   variant="caption"
                   sx={{ mt: 1, display: "block", color: "grey.500" }}
                 >
-                  Loading tickets...
+                  Cargando tickets...
                 </Typography>
               )}
             </CardContent>

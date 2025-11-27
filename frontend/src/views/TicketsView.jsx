@@ -40,7 +40,7 @@ export default function TicketsView() {
   const [status, setStatus] = useState("open");
   const [projectId, setProjectId] = useState("");
 
-  // edición (dialog)
+  // edición (diálogo)
   const [editOpen, setEditOpen] = useState(false);
   const [editTicketId, setEditTicketId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
@@ -49,7 +49,7 @@ export default function TicketsView() {
   const [editStatus, setEditStatus] = useState("open");
   const [editProjectId, setEditProjectId] = useState("");
 
-  // 👉 único filtro visible arriba: por project
+  // único filtro visible arriba: por proyecto
   const [filterProject, setFilterProject] = useState("all");
 
   // orden (click en encabezados)
@@ -134,7 +134,7 @@ export default function TicketsView() {
 
   // 🔎 filtros + orden
   const displayTickets = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = (searchQuery ?? "").trim().toLowerCase();
 
     const priorityWeight = (p) => {
       if (p === "high") return 3;
@@ -144,11 +144,11 @@ export default function TicketsView() {
     };
 
     let result = safeTickets.filter((t) => {
-      // búsqueda (title / description / nombre de project)
+      // búsqueda (título / descripción / nombre de proyecto)
       if (q) {
         const projectName = projectNameById(t.project_id).toLowerCase();
         const matches =
-          t.title.toLowerCase().includes(q) ||
+          (t.title || "").toLowerCase().includes(q) ||
           (t.description || "").toLowerCase().includes(q) ||
           projectName.includes(q);
 
@@ -195,7 +195,7 @@ export default function TicketsView() {
         return va.localeCompare(vb) * dir;
       }
 
-      // default: ordenar por id
+      // por defecto: ordenar por id
       return (a.id - b.id) * dir;
     });
 
@@ -215,7 +215,7 @@ export default function TicketsView() {
         Tickets
       </Typography>
 
-      {/* Form creación */}
+      {/* Formulario de creación */}
       <Box
         component="form"
         onSubmit={handleCreate}
@@ -228,21 +228,21 @@ export default function TicketsView() {
         }}
       >
         <TextField
-          label="Title"
+          label="Título"
           size="small"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           sx={{ minWidth: 220 }}
         />
         <TextField
-          label="Description"
+          label="Descripción"
           size="small"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           sx={{ minWidth: 260 }}
         />
         <TextField
-          label="Project"
+          label="Proyecto"
           size="small"
           select
           value={projectId}
@@ -256,35 +256,35 @@ export default function TicketsView() {
           ))}
         </TextField>
         <TextField
-          label="Priority"
+          label="Prioridad"
           size="small"
           select
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
           sx={{ minWidth: 140 }}
         >
-          <MenuItem value="low">Low</MenuItem>
-          <MenuItem value="medium">Medium</MenuItem>
-          <MenuItem value="high">High</MenuItem>
+          <MenuItem value="low">Baja</MenuItem>
+          <MenuItem value="medium">Media</MenuItem>
+          <MenuItem value="high">Alta</MenuItem>
         </TextField>
         <TextField
-          label="Status"
+          label="Estado"
           size="small"
           select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           sx={{ minWidth: 140 }}
         >
-          <MenuItem value="open">Open</MenuItem>
-          <MenuItem value="pending">Pending</MenuItem>
-          <MenuItem value="closed">Closed</MenuItem>
+          <MenuItem value="open">Abierto</MenuItem>
+          <MenuItem value="pending">Pendiente</MenuItem>
+          <MenuItem value="closed">Cerrado</MenuItem>
         </TextField>
         <Button variant="contained" type="submit">
-          Add ticket
+          Agregar ticket
         </Button>
       </Box>
 
-      {/* 🔽 barra de filtros → solo Project */}
+      {/* Barra de filtros → solo Proyecto */}
       <Box
         sx={{
           display: "flex",
@@ -296,13 +296,13 @@ export default function TicketsView() {
       >
         <TextField
           select
-          label="Project"
+          label="Proyecto"
           size="small"
           value={filterProject}
           onChange={(e) => setFilterProject(e.target.value)}
           sx={{ minWidth: 200 }}
         >
-          <MenuItem value="all">All projects</MenuItem>
+          <MenuItem value="all">Todos los proyectos</MenuItem>
           {safeProjects.map((p) => (
             <MenuItem key={p.id} value={p.id}>
               {p.name}
@@ -345,7 +345,7 @@ export default function TicketsView() {
                     direction={sortField === "title" ? sortDirection : "asc"}
                     onClick={() => handleSortColumn("title")}
                   >
-                    Title
+                    Título
                   </TableSortLabel>
                 </TableCell>
 
@@ -358,7 +358,7 @@ export default function TicketsView() {
                     direction={sortField === "project" ? sortDirection : "asc"}
                     onClick={() => handleSortColumn("project")}
                   >
-                    Project
+                    Proyecto
                   </TableSortLabel>
                 </TableCell>
 
@@ -373,7 +373,7 @@ export default function TicketsView() {
                     direction={sortField === "priority" ? sortDirection : "asc"}
                     onClick={() => handleSortColumn("priority")}
                   >
-                    Priority
+                    Prioridad
                   </TableSortLabel>
                 </TableCell>
 
@@ -386,12 +386,12 @@ export default function TicketsView() {
                     direction={sortField === "status" ? sortDirection : "asc"}
                     onClick={() => handleSortColumn("status")}
                   >
-                    Status
+                    Estado
                   </TableSortLabel>
                 </TableCell>
 
                 <TableCell sx={{ color: "grey.400" }} align="right">
-                  Actions
+                  Acciones
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -402,22 +402,38 @@ export default function TicketsView() {
                   <TableCell>{t.id}</TableCell>
                   <TableCell>{t.title}</TableCell>
                   <TableCell>{projectNameById(t.project_id)}</TableCell>
-                  <TableCell>{t.priority}</TableCell>
-                  <TableCell>{t.status}</TableCell>
+                  <TableCell>
+                    {t.priority === "low"
+                      ? "Baja"
+                      : t.priority === "medium"
+                      ? "Media"
+                      : t.priority === "high"
+                      ? "Alta"
+                      : t.priority}
+                  </TableCell>
+                  <TableCell>
+                    {t.status === "open"
+                      ? "Abierto"
+                      : t.status === "pending"
+                      ? "Pendiente"
+                      : t.status === "closed"
+                      ? "Cerrado"
+                      : t.status}
+                  </TableCell>
                   <TableCell align="right">
                     <Button
                       size="small"
                       onClick={() => handleOpenEdit(t)}
                       sx={{ mr: 1 }}
                     >
-                      Edit
+                      Editar
                     </Button>
                     <Button
                       size="small"
                       color="error"
                       onClick={() => handleDelete(t.id)}
                     >
-                      Delete
+                      Eliminar
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -427,7 +443,7 @@ export default function TicketsView() {
                 <TableRow>
                   <TableCell colSpan={6}>
                     <Typography variant="body2" sx={{ color: "grey.400" }}>
-                      No tickets found.
+                      No se encontraron tickets.
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -437,20 +453,20 @@ export default function TicketsView() {
         </CardContent>
       </Card>
 
-      {/* Dialog edición */}
+      {/* Diálogo de edición */}
       <Dialog open={editOpen} onClose={handleCloseEdit} fullWidth maxWidth="md">
-        <DialogTitle>Edit ticket</DialogTitle>
+        <DialogTitle>Editar ticket</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 1 }}>
             <TextField
-              label="Title"
+              label="Título"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
               sx={{ minWidth: 220 }}
               autoFocus
             />
             <TextField
-              label="Description"
+              label="Descripción"
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
               sx={{ minWidth: 260 }}
@@ -458,7 +474,7 @@ export default function TicketsView() {
               minRows={2}
             />
             <TextField
-              label="Project"
+              label="Proyecto"
               select
               value={editProjectId}
               onChange={(e) => setEditProjectId(e.target.value)}
@@ -471,33 +487,33 @@ export default function TicketsView() {
               ))}
             </TextField>
             <TextField
-              label="Priority"
+              label="Prioridad"
               select
               value={editPriority}
               onChange={(e) => setEditPriority(e.target.value)}
               sx={{ minWidth: 140 }}
             >
-              <MenuItem value="low">Low</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="high">High</MenuItem>
+              <MenuItem value="low">Baja</MenuItem>
+              <MenuItem value="medium">Media</MenuItem>
+              <MenuItem value="high">Alta</MenuItem>
             </TextField>
             <TextField
-              label="Status"
+              label="Estado"
               select
               value={editStatus}
               onChange={(e) => setEditStatus(e.target.value)}
               sx={{ minWidth: 140 }}
             >
-              <MenuItem value="open">Open</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="closed">Closed</MenuItem>
+              <MenuItem value="open">Abierto</MenuItem>
+              <MenuItem value="pending">Pendiente</MenuItem>
+              <MenuItem value="closed">Cerrado</MenuItem>
             </TextField>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseEdit}>Cancel</Button>
+          <Button onClick={handleCloseEdit}>Cancelar</Button>
           <Button onClick={handleSaveEdit} variant="contained">
-            Save
+            Guardar
           </Button>
         </DialogActions>
       </Dialog>

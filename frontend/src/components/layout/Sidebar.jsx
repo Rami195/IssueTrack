@@ -1,4 +1,3 @@
-// src/components/layout/Sidebar.jsx
 import {
   Box,
   List,
@@ -23,6 +22,7 @@ export default function Sidebar({ currentView, onChangeView }) {
         bgcolor: "#020617",
       }}
     >
+   
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <Box
           sx={{
@@ -45,6 +45,7 @@ export default function Sidebar({ currentView, onChangeView }) {
         />
       </Box>
 
+    
       <List dense sx={{ mt: 1 }}>
         <ListItem
           button
@@ -53,7 +54,7 @@ export default function Sidebar({ currentView, onChangeView }) {
           sx={{
             borderRadius: 2,
             mb: 0.5,
-            cursor: "pointer",          
+            cursor: "pointer",
           }}
         >
           <DashboardIcon
@@ -64,7 +65,7 @@ export default function Sidebar({ currentView, onChangeView }) {
                 currentView === "dashboard" ? "primary.main" : "grey.400",
             }}
           />
-          <ListItemText primary="Dashboard" />
+          <ListItemText primary="Panel" />
         </ListItem>
 
         <ListItem
@@ -74,7 +75,7 @@ export default function Sidebar({ currentView, onChangeView }) {
           sx={{
             borderRadius: 2,
             mb: 0.5,
-            cursor: "pointer",          
+            cursor: "pointer",
           }}
         >
           <ConfirmationNumberIcon
@@ -94,7 +95,7 @@ export default function Sidebar({ currentView, onChangeView }) {
           sx={{
             borderRadius: 2,
             mb: 0.5,
-            cursor: "pointer",       
+            cursor: "pointer",
           }}
         >
           <PeopleIcon
@@ -104,26 +105,11 @@ export default function Sidebar({ currentView, onChangeView }) {
               color: currentView === "projects" ? "primary.main" : "grey.400",
             }}
           />
-          <ListItemText primary="Projects" />
+          <ListItemText primary="Proyectos" />
         </ListItem>
       </List>
 
       <Box sx={{ flexGrow: 1 }} />
-
-      <Box
-        sx={{
-          mt: 2,
-          p: 1,
-          borderRadius: 2,
-          border: "1px solid rgba(248,113,113,0.5)",
-          color: "error.light",
-          fontSize: 12,
-          textAlign: "center",
-          cursor: "pointer",
-        }}
-      >
-        Reset Data
-      </Box>
     </Box>
   );
 }
