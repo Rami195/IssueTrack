@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: issuehub-db
+    environment:
+      POSTGRES_DB: issuehub
+      POSTGRES_USER: issuehub_user
+      POSTGRES_PASSWORD: issuehub_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  api:
+    build: ./backend
+    container_name: issuehub-api
+    depends_on:
+      - db
+    environment:
+      # Más adelante usaremos esto en el código
+      DATABASE_URL: postgresql://issuehub_user:issuehub_pass@db:5432/issuehub
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    container_name: issuehub-frontend
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+
+volumes:
+  db_data:
