@@ -1,4 +1,4 @@
-# 🚀 IssueHub – Gestión de Proyectos y Tickets
+# IssueHub – Gestión de Proyectos y Tickets
 
 IssueHub es una aplicación web completa para **gestión de proyectos y seguimiento de tickets**, desarrollada con un stack moderno que incluye **FastAPI**, **React (Vite)** y **Docker**.  
 Proporciona autenticación JWT, CRUD de proyectos y tickets, dashboard, filtros, ordenamiento y una interfaz moderna.
