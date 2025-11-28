@@ -1,3 +1,4 @@
+// src/components/layout/Sidebar.jsx
 import {
   Box,
   List,
@@ -8,7 +9,12 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import PeopleIcon from "@mui/icons-material/People";
 
-export default function Sidebar({ currentView, onChangeView }) {
+export default function Sidebar({ currentView, onChangeView, onItemClick }) {
+  const handleChange = (view) => {
+    onChangeView(view);
+    if (onItemClick) onItemClick(); // para cerrar el Drawer en mobile
+  };
+
   return (
     <Box
       component="nav"
@@ -20,9 +26,9 @@ export default function Sidebar({ currentView, onChangeView }) {
         flexDirection: "column",
         gap: 3,
         bgcolor: "#020617",
+        height: "100%",
       }}
     >
-   
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <Box
           sx={{
@@ -45,11 +51,10 @@ export default function Sidebar({ currentView, onChangeView }) {
         />
       </Box>
 
-    
       <List dense sx={{ mt: 1 }}>
         <ListItem
           button
-          onClick={() => onChangeView("dashboard")}
+          onClick={() => handleChange("dashboard")}
           selected={currentView === "dashboard"}
           sx={{
             borderRadius: 2,
@@ -70,7 +75,7 @@ export default function Sidebar({ currentView, onChangeView }) {
 
         <ListItem
           button
-          onClick={() => onChangeView("tickets")}
+          onClick={() => handleChange("tickets")}
           selected={currentView === "tickets"}
           sx={{
             borderRadius: 2,
@@ -90,7 +95,7 @@ export default function Sidebar({ currentView, onChangeView }) {
 
         <ListItem
           button
-          onClick={() => onChangeView("projects")}
+          onClick={() => handleChange("projects")}
           selected={currentView === "projects"}
           sx={{
             borderRadius: 2,

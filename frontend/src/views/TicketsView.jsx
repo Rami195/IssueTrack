@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogActions,
   TableSortLabel,
+  TableContainer,
 } from "@mui/material";
 import useAppStore from "../store/useAppStore";
 
@@ -221,10 +222,11 @@ export default function TicketsView() {
         onSubmit={handleCreate}
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           flexWrap: "wrap",
           gap: 2,
           mb: 3,
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center" },
         }}
       >
         <TextField
@@ -232,14 +234,14 @@ export default function TicketsView() {
           size="small"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          sx={{ minWidth: 220 }}
+          sx={{ minWidth: { xs: "100%", sm: 220 }, flex: 1 }}
         />
         <TextField
           label="Descripción"
           size="small"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          sx={{ minWidth: 260 }}
+          sx={{ minWidth: { xs: "100%", sm: 260 }, flex: 2 }}
         />
         <TextField
           label="Proyecto"
@@ -247,7 +249,7 @@ export default function TicketsView() {
           select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
-          sx={{ minWidth: 180 }}
+          sx={{ minWidth: { xs: "100%", sm: 180 } }}
         >
           {safeProjects.map((p) => (
             <MenuItem key={p.id} value={p.id}>
@@ -261,7 +263,7 @@ export default function TicketsView() {
           select
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
-          sx={{ minWidth: 140 }}
+          sx={{ minWidth: { xs: "100%", sm: 140 } }}
         >
           <MenuItem value="low">Baja</MenuItem>
           <MenuItem value="medium">Media</MenuItem>
@@ -273,13 +275,17 @@ export default function TicketsView() {
           select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          sx={{ minWidth: 140 }}
+          sx={{ minWidth: { xs: "100%", sm: 140 } }}
         >
           <MenuItem value="open">Abierto</MenuItem>
           <MenuItem value="pending">Pendiente</MenuItem>
           <MenuItem value="closed">Cerrado</MenuItem>
         </TextField>
-        <Button variant="contained" type="submit">
+        <Button
+          variant="contained"
+          type="submit"
+          sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}
+        >
           Agregar ticket
         </Button>
       </Box>
@@ -288,10 +294,11 @@ export default function TicketsView() {
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           flexWrap: "wrap",
           gap: 2,
           mb: 2,
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center" },
         }}
       >
         <TextField
@@ -300,7 +307,7 @@ export default function TicketsView() {
           size="small"
           value={filterProject}
           onChange={(e) => setFilterProject(e.target.value)}
-          sx={{ minWidth: 200 }}
+          sx={{ minWidth: { xs: "100%", sm: 200 }, maxWidth: 260 }}
         >
           <MenuItem value="all">Todos los proyectos</MenuItem>
           {safeProjects.map((p) => (
@@ -319,137 +326,181 @@ export default function TicketsView() {
           border: "1px solid rgba(148,163,184,0.2)",
         }}
       >
-        <CardContent>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell
-                  sx={{ color: "grey.400" }}
-                  sortDirection={sortField === "id" ? sortDirection : false}
-                >
-                  <TableSortLabel
-                    active={sortField === "id"}
-                    direction={sortField === "id" ? sortDirection : "asc"}
-                    onClick={() => handleSortColumn("id")}
-                  >
-                    ID
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell
-                  sx={{ color: "grey.400" }}
-                  sortDirection={sortField === "title" ? sortDirection : false}
-                >
-                  <TableSortLabel
-                    active={sortField === "title"}
-                    direction={sortField === "title" ? sortDirection : "asc"}
-                    onClick={() => handleSortColumn("title")}
-                  >
-                    Título
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell
-                  sx={{ color: "grey.400" }}
-                  sortDirection={sortField === "project" ? sortDirection : false}
-                >
-                  <TableSortLabel
-                    active={sortField === "project"}
-                    direction={sortField === "project" ? sortDirection : "asc"}
-                    onClick={() => handleSortColumn("project")}
-                  >
-                    Proyecto
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell
-                  sx={{ color: "grey.400" }}
-                  sortDirection={
-                    sortField === "priority" ? sortDirection : false
-                  }
-                >
-                  <TableSortLabel
-                    active={sortField === "priority"}
-                    direction={sortField === "priority" ? sortDirection : "asc"}
-                    onClick={() => handleSortColumn("priority")}
-                  >
-                    Prioridad
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell
-                  sx={{ color: "grey.400" }}
-                  sortDirection={sortField === "status" ? sortDirection : false}
-                >
-                  <TableSortLabel
-                    active={sortField === "status"}
-                    direction={sortField === "status" ? sortDirection : "asc"}
-                    onClick={() => handleSortColumn("status")}
-                  >
-                    Estado
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell sx={{ color: "grey.400" }} align="right">
-                  Acciones
-                </TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {displayTickets.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell>{t.id}</TableCell>
-                  <TableCell>{t.title}</TableCell>
-                  <TableCell>{projectNameById(t.project_id)}</TableCell>
-                  <TableCell>
-                    {t.priority === "low"
-                      ? "Baja"
-                      : t.priority === "medium"
-                      ? "Media"
-                      : t.priority === "high"
-                      ? "Alta"
-                      : t.priority}
-                  </TableCell>
-                  <TableCell>
-                    {t.status === "open"
-                      ? "Abierto"
-                      : t.status === "pending"
-                      ? "Pendiente"
-                      : t.status === "closed"
-                      ? "Cerrado"
-                      : t.status}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Button
-                      size="small"
-                      onClick={() => handleOpenEdit(t)}
-                      sx={{ mr: 1 }}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => handleDelete(t.id)}
-                    >
-                      Eliminar
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-
-              {displayTickets.length === 0 && (
+        <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
+          <TableContainer sx={{ maxHeight: { xs: 400, md: "none" } }}>
+            <Table size="small">
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={6}>
-                    <Typography variant="body2" sx={{ color: "grey.400" }}>
-                      No se encontraron tickets.
-                    </Typography>
+                  <TableCell
+                    sx={{ color: "grey.400", whiteSpace: "nowrap" }}
+                    sortDirection={sortField === "id" ? sortDirection : false}
+                  >
+                    <TableSortLabel
+                      active={sortField === "id"}
+                      direction={sortField === "id" ? sortDirection : "asc"}
+                      onClick={() => handleSortColumn("id")}
+                    >
+                      ID
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell
+                    sx={{ color: "grey.400", whiteSpace: "nowrap" }}
+                    sortDirection={
+                      sortField === "title" ? sortDirection : false
+                    }
+                  >
+                    <TableSortLabel
+                      active={sortField === "title"}
+                      direction={
+                        sortField === "title" ? sortDirection : "asc"
+                      }
+                      onClick={() => handleSortColumn("title")}
+                    >
+                      Título
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell
+                    sx={{ color: "grey.400", whiteSpace: "nowrap" }}
+                    sortDirection={
+                      sortField === "project" ? sortDirection : false
+                    }
+                  >
+                    <TableSortLabel
+                      active={sortField === "project"}
+                      direction={
+                        sortField === "project" ? sortDirection : "asc"
+                      }
+                      onClick={() => handleSortColumn("project")}
+                    >
+                      Proyecto
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell
+                    sx={{
+                      color: "grey.400",
+                      whiteSpace: "nowrap",
+                      display: { xs: "none", sm: "table-cell" },
+                    }}
+                    sortDirection={
+                      sortField === "priority" ? sortDirection : false
+                    }
+                  >
+                    <TableSortLabel
+                      active={sortField === "priority"}
+                      direction={
+                        sortField === "priority" ? sortDirection : "asc"
+                      }
+                      onClick={() => handleSortColumn("priority")}
+                    >
+                      Prioridad
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell
+                    sx={{
+                      color: "grey.400",
+                      whiteSpace: "nowrap",
+                      display: { xs: "none", sm: "table-cell" },
+                    }}
+                    sortDirection={
+                      sortField === "status" ? sortDirection : false
+                    }
+                  >
+                    <TableSortLabel
+                      active={sortField === "status"}
+                      direction={
+                        sortField === "status" ? sortDirection : "asc"
+                      }
+                      onClick={() => handleSortColumn("status")}
+                    >
+                      Estado
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell
+                    sx={{ color: "grey.400", textAlign: "right" }}
+                    align="right"
+                  >
+                    Acciones
                   </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHead>
+
+              <TableBody>
+                {displayTickets.map((t) => (
+                  <TableRow key={t.id} hover>
+                    <TableCell>{t.id}</TableCell>
+                    <TableCell>{t.title}</TableCell>
+                    <TableCell>{projectNameById(t.project_id)}</TableCell>
+
+                    <TableCell
+                      sx={{ display: { xs: "none", sm: "table-cell" } }}
+                    >
+                      {t.priority === "low"
+                        ? "Baja"
+                        : t.priority === "medium"
+                        ? "Media"
+                        : t.priority === "high"
+                        ? "Alta"
+                        : t.priority}
+                    </TableCell>
+
+                    <TableCell
+                      sx={{ display: { xs: "none", sm: "table-cell" } }}
+                    >
+                      {t.status === "open"
+                        ? "Abierto"
+                        : t.status === "pending"
+                        ? "Pendiente"
+                        : t.status === "closed"
+                        ? "Cerrado"
+                        : t.status}
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 1,
+                          justifyContent: "flex-end",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <Button
+                          size="small"
+                          onClick={() => handleOpenEdit(t)}
+                          sx={{ minWidth: 0 }}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(t.id)}
+                          sx={{ minWidth: 0 }}
+                        >
+                          Eliminar
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+
+                {displayTickets.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <Typography variant="body2" sx={{ color: "grey.400" }}>
+                        No se encontraron tickets.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </CardContent>
       </Card>
 
@@ -457,19 +508,27 @@ export default function TicketsView() {
       <Dialog open={editOpen} onClose={handleCloseEdit} fullWidth maxWidth="md">
         <DialogTitle>Editar ticket</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              flexWrap: "wrap",
+              gap: 2,
+              mt: 1,
+            }}
+          >
             <TextField
               label="Título"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              sx={{ minWidth: 220 }}
+              sx={{ minWidth: { xs: "100%", sm: 220 }, flex: 1 }}
               autoFocus
             />
             <TextField
               label="Descripción"
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
-              sx={{ minWidth: 260 }}
+              sx={{ minWidth: { xs: "100%", sm: 260 }, flex: 2 }}
               multiline
               minRows={2}
             />
@@ -478,7 +537,7 @@ export default function TicketsView() {
               select
               value={editProjectId}
               onChange={(e) => setEditProjectId(e.target.value)}
-              sx={{ minWidth: 180 }}
+              sx={{ minWidth: { xs: "100%", sm: 180 } }}
             >
               {safeProjects.map((p) => (
                 <MenuItem key={p.id} value={p.id}>
@@ -491,7 +550,7 @@ export default function TicketsView() {
               select
               value={editPriority}
               onChange={(e) => setEditPriority(e.target.value)}
-              sx={{ minWidth: 140 }}
+              sx={{ minWidth: { xs: "100%", sm: 140 } }}
             >
               <MenuItem value="low">Baja</MenuItem>
               <MenuItem value="medium">Media</MenuItem>
@@ -502,7 +561,7 @@ export default function TicketsView() {
               select
               value={editStatus}
               onChange={(e) => setEditStatus(e.target.value)}
-              sx={{ minWidth: 140 }}
+              sx={{ minWidth: { xs: "100%", sm: 140 } }}
             >
               <MenuItem value="open">Abierto</MenuItem>
               <MenuItem value="pending">Pendiente</MenuItem>

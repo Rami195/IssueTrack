@@ -8,9 +8,10 @@ import {
   Avatar,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import MenuIcon from "@mui/icons-material/Menu";
 import useAppStore from "../../store/useAppStore";
 
-export default function TopBar({ userName }) {
+export default function TopBar({ userName, onOpenSidebar }) {
   const { searchQuery, setSearchQuery } = useAppStore();
 
   return (
@@ -21,32 +22,48 @@ export default function TopBar({ userName }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        px: 3,
+        px: { xs: 2, md: 3 },
+        gap: 2,
       }}
     >
-      <TextField
-        size="small"
-        placeholder="Buscar tickets, proyectos..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        sx={{
-          maxWidth: 420,
-          "& .MuiOutlinedInput-root": {
-            borderRadius: 999,
-            bgcolor: "#020617",
-          },
-        }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon sx={{ color: "grey.500" }} />
-            </InputAdornment>
-          ),
-        }}
-      />
+      {/* Izquierda: botón menú (mobile) + buscador */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1 }}>
+        {/* Botón hamburguesa solo en pantallas chicas */}
+        <IconButton
+          onClick={onOpenSidebar}
+          sx={{
+            display: { xs: "inline-flex", md: "none" },
+          }}
+        >
+          <MenuIcon />
+        </IconButton>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <Box sx={{ textAlign: "right" }}>
+        <TextField
+          size="small"
+          placeholder="Buscar tickets, proyectos..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          fullWidth
+          sx={{
+            maxWidth: { xs: "100%", sm: 420 },
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 999,
+              bgcolor: "#020617",
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon sx={{ color: "grey.500" }} />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
+
+      {/* Derecha: usuario */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+        <Box sx={{ textAlign: "right", display: { xs: "none", sm: "block" } }}>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             {userName || "Usuario Admin"}
           </Typography>

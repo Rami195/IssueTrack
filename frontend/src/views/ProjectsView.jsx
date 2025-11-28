@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogActions,
   TableSortLabel,
+  TableContainer,
 } from "@mui/material";
 import useAppStore from "../store/useAppStore";
 
@@ -51,7 +52,6 @@ export default function ProjectsView() {
   const [sortDirection, setSortDirection] = useState("asc");
 
   const handleCreate = async (e) => {
-    // soporta tanto onSubmit como onClick manual
     e?.preventDefault?.();
 
     if (!name.trim()) return;
@@ -148,8 +148,8 @@ export default function ProjectsView() {
         if (!matches) return false;
       }
 
-      // placeholder para filterType (por ahora “all” no filtra nada)
       if (filterType !== "all") {
+        // placeholder para futuros filtros
         return true;
       }
 
@@ -196,10 +196,11 @@ export default function ProjectsView() {
         onSubmit={handleCreate}
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           flexWrap: "wrap",
           gap: 2,
           mb: 3,
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center" },
         }}
       >
         <TextField
@@ -207,16 +208,20 @@ export default function ProjectsView() {
           size="small"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          sx={{ minWidth: 240 }}
+          sx={{ minWidth: { xs: "100%", sm: 220 }, flex: 1 }}
         />
         <TextField
           label="Descripción"
           size="small"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          sx={{ minWidth: 260 }}
+          sx={{ minWidth: { xs: "100%", sm: 260 }, flex: 2 }}
         />
-        <Button variant="contained" type="submit">
+        <Button
+          variant="contained"
+          type="submit"
+          sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}
+        >
           Agregar proyecto
         </Button>
       </Box>
@@ -225,10 +230,11 @@ export default function ProjectsView() {
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           flexWrap: "wrap",
           gap: 2,
           mb: 2,
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center" },
         }}
       >
         <TextField
@@ -237,7 +243,7 @@ export default function ProjectsView() {
           size="small"
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          sx={{ minWidth: 180 }}
+          sx={{ minWidth: { xs: "100%", sm: 180 }, maxWidth: 260 }}
         >
           <MenuItem value="all">Todos los proyectos</MenuItem>
         </TextField>
@@ -250,122 +256,173 @@ export default function ProjectsView() {
           border: "1px solid rgba(148,163,184,0.2)",
         }}
       >
-        <CardContent>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell
-                  sx={{ color: "grey.400" }}
-                  sortDirection={sortField === "id" ? sortDirection : false}
-                >
-                  <TableSortLabel
-                    active={sortField === "id"}
-                    direction={sortField === "id" ? sortDirection : "asc"}
-                    onClick={() => handleSortColumn("id")}
-                  >
-                    ID
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell
-                  sx={{ color: "grey.400" }}
-                  sortDirection={sortField === "name" ? sortDirection : false}
-                >
-                  <TableSortLabel
-                    active={sortField === "name"}
-                    direction={sortField === "name" ? sortDirection : "asc"}
-                    onClick={() => handleSortColumn("name")}
-                  >
-                    Nombre
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell sx={{ color: "grey.400" }}>
-                  Descripción
-                </TableCell>
-
-                <TableCell
-                  sx={{ color: "grey.400" }}
-                  sortDirection={
-                    sortField === "created_at" ? sortDirection : false
-                  }
-                >
-                  <TableSortLabel
-                    active={sortField === "created_at"}
-                    direction={
-                      sortField === "created_at" ? sortDirection : "asc"
-                    }
-                    onClick={() => handleSortColumn("created_at")}
-                  >
-                    Creado
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell
-                  sx={{ color: "grey.400" }}
-                  sortDirection={
-                    sortField === "updated_at" ? sortDirection : false
-                  }
-                >
-                  <TableSortLabel
-                    active={sortField === "updated_at"}
-                    direction={
-                      sortField === "updated_at" ? sortDirection : "asc"
-                    }
-                    onClick={() => handleSortColumn("updated_at")}
-                  >
-                    Actualizado
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell sx={{ color: "grey.400" }} align="right">
-                  Acciones
-                </TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {displayProjects.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>{p.id}</TableCell>
-                  <TableCell>{p.name}</TableCell>
-                  <TableCell>{p.description}</TableCell>
-                  <TableCell>
-                    {p.created_at && new Date(p.created_at).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    {p.updated_at && new Date(p.updated_at).toLocaleString()}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Button
-                      size="small"
-                      onClick={() => handleOpenEdit(p)}
-                      sx={{ mr: 1 }}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => handleDelete(p.id)}
-                    >
-                      Eliminar
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-
-              {displayProjects.length === 0 && (
+        <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
+          {/* Contenedor scrolleable para móvil */}
+          <TableContainer sx={{ maxHeight: { xs: 400, md: "none" } }}>
+            <Table size="small" stickyHeader={false}>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={6}>
-                    <Typography variant="body2" sx={{ color: "grey.400" }}>
-                      No se encontraron proyectos.
-                    </Typography>
+                  <TableCell
+                    sx={{ color: "grey.400", whiteSpace: "nowrap" }}
+                    sortDirection={sortField === "id" ? sortDirection : false}
+                  >
+                    <TableSortLabel
+                      active={sortField === "id"}
+                      direction={sortField === "id" ? sortDirection : "asc"}
+                      onClick={() => handleSortColumn("id")}
+                    >
+                      ID
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell
+                    sx={{ color: "grey.400", whiteSpace: "nowrap" }}
+                    sortDirection={
+                      sortField === "name" ? sortDirection : false
+                    }
+                  >
+                    <TableSortLabel
+                      active={sortField === "name"}
+                      direction={sortField === "name" ? sortDirection : "asc"}
+                      onClick={() => handleSortColumn("name")}
+                    >
+                      Nombre
+                    </TableSortLabel>
+                  </TableCell>
+
+                  {/* Ocultamos descripción en XS si querés más compacto */}
+                  <TableCell
+                    sx={{
+                      color: "grey.400",
+                      display: { xs: "none", sm: "table-cell" },
+                    }}
+                  >
+                    Descripción
+                  </TableCell>
+
+                  <TableCell
+                    sx={{
+                      color: "grey.400",
+                      whiteSpace: "nowrap",
+                      display: { xs: "none", md: "table-cell" },
+                    }}
+                    sortDirection={
+                      sortField === "created_at" ? sortDirection : false
+                    }
+                  >
+                    <TableSortLabel
+                      active={sortField === "created_at"}
+                      direction={
+                        sortField === "created_at" ? sortDirection : "asc"
+                      }
+                      onClick={() => handleSortColumn("created_at")}
+                    >
+                      Creado
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell
+                    sx={{
+                      color: "grey.400",
+                      whiteSpace: "nowrap",
+                      display: { xs: "none", md: "table-cell" },
+                    }}
+                    sortDirection={
+                      sortField === "updated_at" ? sortDirection : false
+                    }
+                  >
+                    <TableSortLabel
+                      active={sortField === "updated_at"}
+                      direction={
+                        sortField === "updated_at" ? sortDirection : "asc"
+                      }
+                      onClick={() => handleSortColumn("updated_at")}
+                    >
+                      Actualizado
+                    </TableSortLabel>
+                  </TableCell>
+
+                  <TableCell
+                    sx={{ color: "grey.400", textAlign: "right" }}
+                    align="right"
+                  >
+                    Acciones
                   </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHead>
+
+              <TableBody>
+                {displayProjects.map((p) => (
+                  <TableRow key={p.id} hover>
+                    <TableCell>{p.id}</TableCell>
+                    <TableCell>{p.name}</TableCell>
+
+                    <TableCell
+                      sx={{
+                        maxWidth: 240,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        display: { xs: "none", sm: "table-cell" },
+                      }}
+                    >
+                      {p.description}
+                    </TableCell>
+
+                    <TableCell
+                      sx={{ display: { xs: "none", md: "table-cell" } }}
+                    >
+                      {p.created_at &&
+                        new Date(p.created_at).toLocaleString()}
+                    </TableCell>
+                    <TableCell
+                      sx={{ display: { xs: "none", md: "table-cell" } }}
+                    >
+                      {p.updated_at &&
+                        new Date(p.updated_at).toLocaleString()}
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 1,
+                          justifyContent: "flex-end",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <Button
+                          size="small"
+                          onClick={() => handleOpenEdit(p)}
+                          sx={{ minWidth: 0 }}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(p.id)}
+                          sx={{ minWidth: 0 }}
+                        >
+                          Eliminar
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+
+                {displayProjects.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <Typography variant="body2" sx={{ color: "grey.400" }}>
+                        No se encontraron proyectos.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </CardContent>
       </Card>
 
@@ -384,6 +441,7 @@ export default function ProjectsView() {
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               autoFocus
+              fullWidth
             />
             <TextField
               label="Descripción"
@@ -391,6 +449,7 @@ export default function ProjectsView() {
               onChange={(e) => setEditDescription(e.target.value)}
               multiline
               minRows={2}
+              fullWidth
             />
           </Box>
         </DialogContent>
