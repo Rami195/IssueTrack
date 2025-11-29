@@ -1,20 +1,5 @@
 // src/views/DashboardView.jsx
-import {
-  Box,
-  Grid,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  TextField,
-  Divider,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  Chip,
-} from "@mui/material";
+import { Box, Grid, Card, CardContent, Typography, Button, TextField, Divider, Table, TableHead, TableBody, TableRow, TableCell, Chip, } from "@mui/material";
 import useAppStore from "../store/useAppStore";
 
 export default function DashboardView() {
@@ -35,18 +20,18 @@ export default function DashboardView() {
 
   const filteredProjects = q
     ? safeProjects.filter((p) => {
-        const name = (p.name || "").toLowerCase();
-        const desc = (p.description || "").toLowerCase();
-        return name.includes(q) || desc.includes(q);
-      })
+      const name = (p.name || "").toLowerCase();
+      const desc = (p.description || "").toLowerCase();
+      return name.includes(q) || desc.includes(q);
+    })
     : safeProjects;
 
   const filteredTickets = q
     ? safeTickets.filter((t) => {
-        const title = (t.title || "").toLowerCase();
-        const desc = (t.description || "").toLowerCase();
-        return title.includes(q) || desc.includes(q);
-      })
+      const title = (t.title || "").toLowerCase();
+      const desc = (t.description || "").toLowerCase();
+      return title.includes(q) || desc.includes(q);
+    })
     : safeTickets;
 
   const totalProjects = safeProjects.length;
@@ -57,8 +42,15 @@ export default function DashboardView() {
       (t.status || "").toLowerCase() === "todo"
   ).length;
 
+  const closedTickets = safeTickets.filter(
+    (t) => (t.status || "").toLowerCase() === "closed"
+  ).length;
+  const pendingTickets = safeTickets.filter(
+    (t) => (t.status || "").toLowerCase() === "pending"
+  ).length;
+
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3, border: 1, p: 3, borderColor: "rgba(148,163,184,0.2)", borderRadius: 2 }}>
       {/* Header SIN barra de búsqueda propia */}
       <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
         <Box>
@@ -81,106 +73,100 @@ export default function DashboardView() {
         </Card>
       )}
 
-      {/* Métricas rápidas */}
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={4}>
-          <Card
-            sx={{
-              borderRadius: 3,
-              bgcolor: "#020617",
-              border: "1px solid rgba(148,163,184,0.3)",
-            }}
-          >
-            <CardContent>
-              <Typography variant="body2" sx={{ color: "grey.400", mb: 1 }}>
+      <Grid container spacing={2} alignItems="stretch" justifyContent="space-between" columns={{ xs: 1, sm: 2, md: 3, lg: 5 }}>
+        <Grid item size={1}>
+          <Card sx={{ borderRadius: 3, bgcolor: "#020617", border: "1px solid rgba(148,163,184,0.3)", height: "100%", display: "flex", flexDirection: "column" }}>
+            <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", py: 4, px: 3 }}>
+              <Typography variant="h6" sx={{ color: "grey.400", mb: 1 }}>
                 Proyectos
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, textAlign: "center" }}>
                 {totalProjects}
               </Typography>
-              <Button
-                size="small"
-                sx={{ mt: 1 }}
-                onClick={() => setView("projects")}
-              >
+              <Button size="small" variant="outlined" sx={{ mt: 1 }} onClick={() => setView("projects")}>
                 Ver proyectos
               </Button>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Card
-            sx={{
-              borderRadius: 3,
-              bgcolor: "#020617",
-              border: "1px solid rgba(148,163,184,0.3)",
-            }}
-          >
-            <CardContent>
-              <Typography variant="body2" sx={{ color: "grey.400", mb: 1 }}>
+        <Grid item size={1}>
+          <Card sx={{ borderRadius: 3, bgcolor: "#020617", border: "1px solid rgba(148,163,184,0.3)", height: "100%", display: "flex", flexDirection: "column" }}>
+            <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", py: 4, px: 3 }}>
+              <Typography variant="h6" sx={{ color: "grey.400", mb: 1 }}>
                 Tickets
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, textAlign: "center" }}>
                 {totalTickets}
               </Typography>
-              <Button
-                size="small"
-                sx={{ mt: 1 }}
-                onClick={() => setView("tickets")}
-              >
+              <Button variant="outlined" size="small" sx={{ mt: 1 }} onClick={() => setView("tickets")}>
                 Ver tickets
               </Button>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Card
-            sx={{
-              borderRadius: 3,
-              bgcolor: "#020617",
-              border: "1px solid rgba(148,163,184,0.3)",
-            }}
-          >
-            <CardContent>
-              <Typography variant="body2" sx={{ color: "grey.400", mb: 1 }}>
+        <Grid item size={1}>
+          <Card sx={{ borderRadius: 3, bgcolor: "#020617", border: "1px solid rgba(148,163,184,0.3)", height: "100%", display: "flex", flexDirection: "column" }}>
+            <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", py: 4, px: 3 }}>
+              <Typography variant="h6" sx={{ color: "grey.400", mb: 1 }}>
                 Tickets abiertos
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, textAlign: "center" }}>
                 {openTickets}
               </Typography>
-              <Typography variant="body2" sx={{ color: "grey.400", mt: 1 }}>
-                Estado basado en campo <code>status</code>
+              <Button variant="outlined" size="small" sx={{ mt: 1 }} onClick={() => setView("tickets")}>
+                Ver tickets
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item size={1}>
+          <Card sx={{ borderRadius: 3, bgcolor: "#020617", border: "1px solid rgba(148,163,184,0.3)", height: "100%", display: "flex", flexDirection: "column" }}>
+            <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", py: 4, px: 3 }}>
+              <Typography variant="h6" sx={{ color: "grey.400", mb: 1 }}>
+                Tickets cerrados
               </Typography>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, textAlign: "center" }}>
+                {closedTickets}
+              </Typography>
+              <Button variant="outlined" size="small" sx={{ mt: 1 }} onClick={() => setView("tickets")}>
+                Ver tickets
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item size={1}>
+          <Card sx={{ borderRadius: 3, bgcolor: "#020617", border: "1px solid rgba(148,163,184,0.3)", height: "100%", display: "flex", flexDirection: "column" }}>
+            <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", py: 4, px: 3 }}>
+              <Typography variant="h6" sx={{ color: "grey.400", mb: 1 }}>
+                Tickets pendientes
+              </Typography>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, textAlign: "center" }}>
+                {pendingTickets}
+              </Typography>
+              <Button variant="outlined" size="small" sx={{ mt: 1 }} onClick={() => setView("tickets")}>
+                Ver tickets
+              </Button>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
+
+
       {/* Listados rápidos */}
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
-          <Card
-            sx={{
-              borderRadius: 3,
-              bgcolor: "#020617",
-              border: "1px solid rgba(148,163,184,0.25)",
-            }}
-          >
+          <Card sx={{ borderRadius: 3, bgcolor: "#020617", border: "1px solid rgba(148,163,184,0.25)" }}>
             <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  mb: 1.5,
-                  alignItems: "center",
-                }}
-              >
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5, alignItems: "center" }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   Proyectos recientes
                 </Typography>
-                <Button size="small" onClick={() => setView("projects")}>
+                <Button size="small" variant="outlined" onClick={() => setView("projects")}>
                   Ver todos
                 </Button>
               </Box>
@@ -197,20 +183,14 @@ export default function DashboardView() {
                   {filteredProjects.slice(0, 5).map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{p.name}</TableCell>
-                      <TableCell>
-                        {p.created_at &&
-                          new Date(p.created_at).toLocaleDateString()}
-                      </TableCell>
+                      <TableCell>{p.created_at && new Date(p.created_at).toLocaleDateString()}</TableCell>
                     </TableRow>
                   ))}
 
                   {filteredProjects.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={2}>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: "grey.400" }}
-                        >
+                        <Typography variant="body2" sx={{ color: "grey.400" }}>
                           No se encontraron proyectos.
                         </Typography>
                       </TableCell>
@@ -220,10 +200,7 @@ export default function DashboardView() {
               </Table>
 
               {loading && (
-                <Typography
-                  variant="caption"
-                  sx={{ mt: 1, display: "block", color: "grey.500" }}
-                >
+                <Typography variant="caption" sx={{ mt: 1, display: "block", color: "grey.500" }}>
                   Cargando proyectos...
                 </Typography>
               )}
@@ -232,26 +209,13 @@ export default function DashboardView() {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Card
-            sx={{
-              borderRadius: 3,
-              bgcolor: "#020617",
-              border: "1px solid rgba(148,163,184,0.25)",
-            }}
-          >
+          <Card sx={{ borderRadius: 3, bgcolor: "#020617", border: "1px solid rgba(148,163,184,0.25)" }}>
             <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  mb: 1.5,
-                  alignItems: "center",
-                }}
-              >
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5, alignItems: "center" }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   Tickets recientes
                 </Typography>
-                <Button size="small" onClick={() => setView("tickets")}>
+                <Button size="small" variant="outlined" onClick={() => setView("tickets")}>
                   Ver todos
                 </Button>
               </Box>
@@ -273,11 +237,7 @@ export default function DashboardView() {
                           size="small"
                           label={t.status || "N/A"}
                           variant="outlined"
-                          sx={{
-                            textTransform: "capitalize",
-                            borderColor: "rgba(148,163,184,0.4)",
-                            color: "grey.200",
-                          }}
+                          sx={{ textTransform: "capitalize", borderColor: "rgba(148,163,184,0.4)", color: "grey.200" }}
                         />
                       </TableCell>
                     </TableRow>
@@ -286,10 +246,7 @@ export default function DashboardView() {
                   {filteredTickets.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={2}>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: "grey.400" }}
-                        >
+                        <Typography variant="body2" sx={{ color: "grey.400" }}>
                           No se encontraron tickets.
                         </Typography>
                       </TableCell>
@@ -299,10 +256,7 @@ export default function DashboardView() {
               </Table>
 
               {loading && (
-                <Typography
-                  variant="caption"
-                  sx={{ mt: 1, display: "block", color: "grey.500" }}
-                >
+                <Typography variant="caption" sx={{ mt: 1, display: "block", color: "grey.500" }}>
                   Cargando tickets...
                 </Typography>
               )}
