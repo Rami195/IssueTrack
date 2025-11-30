@@ -353,7 +353,7 @@ export default function ProjectsView() {
 
               <TableBody>
                 {displayProjects.map((p) => (
-                  <TableRow key={p.id} hover>
+                  <TableRow key={p.id} hover onClick={() => handleOpenEdit(p)}  sx={{ cursor: "pointer" }}  >
                     <TableCell>{p.id}</TableCell>
                     <TableCell>{p.name}</TableCell>
 

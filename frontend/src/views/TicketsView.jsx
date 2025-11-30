@@ -1,24 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  MenuItem,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TextField,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TableSortLabel,
-  TableContainer,
-} from "@mui/material";
+import { Box, Button, Card, CardContent, MenuItem, Table, TableHead, TableRow, TableCell, TableBody, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TableSortLabel, TableContainer, Chip } from "@mui/material";
 import useAppStore from "../store/useAppStore";
 
 export default function TicketsView() {
@@ -431,7 +412,7 @@ export default function TicketsView() {
 
               <TableBody>
                 {displayTickets.map((t) => (
-                  <TableRow key={t.id} hover>
+                  <TableRow key={t.id} hover  onClick={() => handleOpenEdit(t)}  sx={{ cursor: "pointer" }}   >
                     <TableCell>{t.id}</TableCell>
                     <TableCell>{t.title}</TableCell>
                     <TableCell>{projectNameById(t.project_id)}</TableCell>
@@ -442,23 +423,64 @@ export default function TicketsView() {
                       {t.priority === "low"
                         ? "Baja"
                         : t.priority === "medium"
-                        ? "Media"
-                        : t.priority === "high"
-                        ? "Alta"
-                        : t.priority}
+                          ? "Media"
+                          : t.priority === "high"
+                            ? "Alta"
+                            : t.priority}
                     </TableCell>
 
                     <TableCell
-                      sx={{ display: { xs: "none", sm: "table-cell" } }}
+                      sx={{
+                        display: { xs: "none", sm: "table-cell" },
+                       
+                      }}
+            
                     >
-                      {t.status === "open"
-                        ? "Abierto"
-                        : t.status === "pending"
-                        ? "Pendiente"
-                        : t.status === "closed"
-                        ? "Cerrado"
-                        : t.status}
+                      <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+                        {(() => {
+                          const status = (t.status || "").toLowerCase();
+
+                          const statusLabel =
+                            status === "open"
+                              ? "Abierto"
+                              : status === "pending"
+                                ? "Pendiente"
+                                : status === "closed"
+                                  ? "Cerrado"
+                                  : t.status || "N/A";
+
+                          return (
+                            <Chip
+                              size="small"
+                              label={statusLabel}
+                              variant="outlined"
+                              sx={{
+                                textTransform: "none",
+                                borderColor:
+                                  status === "open"
+                                    ? "rgba(34,197,94,0.7)"      // verde
+                                    : status === "pending"
+                                      ? "rgba(234,179,8,0.8)"      // amarillo
+                                      : "rgba(248,113,113,0.8)",   // rojo
+                                bgcolor:
+                                  status === "open"
+                                    ? "rgba(22,163,74,0.15)"
+                                    : status === "pending"
+                                      ? "rgba(202,138,4,0.18)"
+                                      : "rgba(239,68,68,0.16)",
+                                color:
+                                  status === "open"
+                                    ? "#4ade80"
+                                    : status === "pending"
+                                      ? "#facc15"
+                                      : "#fca5a5",
+                              }}
+                            />
+                          );
+                        })()}
+                      </Box>
                     </TableCell>
+
 
                     <TableCell align="right">
                       <Box
