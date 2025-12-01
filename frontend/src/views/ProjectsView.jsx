@@ -1,41 +1,13 @@
 // src/views/ProjectsView.jsx
 import { useState, useMemo } from "react";
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  MenuItem,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TextField,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TableSortLabel,
-  TableContainer,
-  Snackbar,
-  Alert,
-} from "@mui/material";
+import { Box, Button, Card, CardContent, MenuItem, Table, TableHead, TableRow, TableCell, TableBody, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TableSortLabel, TableContainer, Snackbar, Alert } from "@mui/material";
 import useAppStore from "../store/useAppStore";
 
 export default function ProjectsView() {
-  const {
-    projects,
-    createProject,
-    updateProject,
-    deleteProject,
-    searchQuery,
-  } = useAppStore();
+  const { projects, createProject, updateProject, deleteProject, searchQuery } = useAppStore();
 
   const safeProjects = Array.isArray(projects) ? projects : [];
-  const safeSearch =
-    typeof searchQuery === "string" ? searchQuery : String(searchQuery || "");
+  const safeSearch = typeof searchQuery === "string" ? searchQuery : String(searchQuery || "");
 
   // creación
   const [name, setName] = useState("");
@@ -48,11 +20,7 @@ export default function ProjectsView() {
   const [editDescription, setEditDescription] = useState("");
 
   // confirmación de borrado (MUI Dialog)
-  const [confirmDelete, setConfirmDelete] = useState({
-    open: false,
-    id: null,
-    name: "",
-  });
+  const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, name: "" });
 
   // filtro (placeholder)
   const [filterType, setFilterType] = useState("all");
@@ -93,13 +61,8 @@ export default function ProjectsView() {
     }
 
     try {
-      await createProject({
-        name: name.trim(),
-        description: description.trim(),
-      });
-
+      await createProject({ name: name.trim(), description: description.trim() });
       showAlert("Proyecto creado correctamente.", "success");
-
       setName("");
       setDescription("");
     } catch (err) {
@@ -136,13 +99,8 @@ export default function ProjectsView() {
     }
 
     try {
-      await updateProject(editProjectId, {
-        name: editName.trim(),
-        description: editDescription.trim(),
-      });
-
+      await updateProject(editProjectId, { name: editName.trim(), description: editDescription.trim() });
       showAlert("Proyecto actualizado correctamente.", "success");
-
       handleCloseEdit();
     } catch (err) {
       console.error("Error al actualizar proyecto:", err);
@@ -152,11 +110,7 @@ export default function ProjectsView() {
 
   // ------------ Eliminar proyecto (con Dialog MUI) ------------
   const openDeleteDialog = (project) => {
-    setConfirmDelete({
-      open: true,
-      id: project.id,
-      name: project.name || "",
-    });
+    setConfirmDelete({ open: true, id: project.id, name: project.name || "" });
   };
 
   const closeDeleteDialog = () => {
@@ -179,7 +133,6 @@ export default function ProjectsView() {
       showAlert("Proyecto eliminado correctamente.", "info");
     } catch (err) {
       console.error("Error al eliminar proyecto:", err);
-      // acá te va a llegar, por ejemplo, "No se puede eliminar el proyecto porque tiene tickets asociados."
       showAlert(err?.message || "Error al eliminar proyecto", "error");
     } finally {
       closeDeleteDialog();
@@ -201,9 +154,7 @@ export default function ProjectsView() {
 
     let result = safeProjects.filter((p) => {
       if (q) {
-        const matches =
-          (p.name || "").toLowerCase().includes(q) ||
-          (p.description || "").toLowerCase().includes(q);
+        const matches = (p.name || "").toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q);
         if (!matches) return false;
       }
 
@@ -246,162 +197,57 @@ export default function ProjectsView() {
   // ================= RENDER =================
   return (
     <>
-      <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>
-        Proyectos
-      </Typography>
+      <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>Proyectos</Typography>
 
       {/* Formulario de creación */}
-      <Box
-        component="form"
-        onSubmit={handleCreate}
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          flexWrap: "wrap",
-          gap: 2,
-          mb: 3,
-          alignItems: { xs: "stretch", sm: "center" },
-        }}
-      >
-        <TextField
-          label="Nombre"
-          size="small"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          sx={{ minWidth: { xs: "100%", sm: 220 }, flex: 1 }}
-        />
-        <TextField
-          label="Descripción"
-          size="small"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          sx={{ minWidth: { xs: "100%", sm: 260 }, flex: 2 }}
-        />
-        <Button
-          variant="contained"
-          type="submit"
-          sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}
-        >
-          Agregar proyecto
-        </Button>
+      <Box component="form" onSubmit={handleCreate} sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, flexWrap: "wrap", gap: 2, mb: 3, alignItems: { xs: "stretch", sm: "center" } }}>
+        <TextField label="Nombre" size="small" value={name} onChange={(e) => setName(e.target.value)} sx={{ minWidth: { xs: "100%", sm: 220 }, flex: 1 }} />
+        <TextField label="Descripción" size="small" value={description} onChange={(e) => setDescription(e.target.value)} sx={{ minWidth: { xs: "100%", sm: 260 }, flex: 2 }} />
+        <Button variant="contained" type="submit" sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}>Agregar proyecto</Button>
       </Box>
 
       {/* Barra de filtros */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          flexWrap: "wrap",
-          gap: 2,
-          mb: 2,
-          alignItems: { xs: "stretch", sm: "center" },
-        }}
-      >
-        <TextField
-          select
-          label="Filtro"
-          size="small"
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          sx={{ minWidth: { xs: "100%", sm: 180 }, maxWidth: 260 }}
-        >
+      <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, flexWrap: "wrap", gap: 2, mb: 2, alignItems: { xs: "stretch", sm: "center" } }}>
+        <TextField select label="Filtro" size="small" value={filterType} onChange={(e) => setFilterType(e.target.value)} sx={{ minWidth: { xs: "100%", sm: 180 }, maxWidth: 260 }}>
           <MenuItem value="all">Todos los proyectos</MenuItem>
         </TextField>
       </Box>
 
-      <Card
-        sx={{
-          bgcolor: "#020617",
-          borderRadius: 3,
-          border: "1px solid rgba(148,163,184,0.2)",
-        }}
-      >
+      <Card sx={{ bgcolor: "#020617", borderRadius: 3, border: "1px solid rgba(148,163,184,0.2)" }}>
         <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
           <TableContainer sx={{ maxHeight: { xs: 400, md: "none" } }}>
             <Table size="small" stickyHeader={false}>
               <TableHead>
                 <TableRow>
-                  <TableCell
-                    sx={{ color: "grey.400", whiteSpace: "nowrap" }}
-                    sortDirection={sortField === "id" ? sortDirection : false}
-                  >
-                    <TableSortLabel
-                      active={sortField === "id"}
-                      direction={sortField === "id" ? sortDirection : "asc"}
-                      onClick={() => handleSortColumn("id")}
-                    >
+                  <TableCell sx={{ color: "grey.400", whiteSpace: "nowrap" }} sortDirection={sortField === "id" ? sortDirection : false}>
+                    <TableSortLabel active={sortField === "id"} direction={sortField === "id" ? sortDirection : "asc"} onClick={() => handleSortColumn("id")}>
                       ID
                     </TableSortLabel>
                   </TableCell>
 
-                  <TableCell
-                    sx={{ color: "grey.400", whiteSpace: "nowrap" }}
-                    sortDirection={sortField === "name" ? sortDirection : false}
-                  >
-                    <TableSortLabel
-                      active={sortField === "name"}
-                      direction={sortField === "name" ? sortDirection : "asc"}
-                      onClick={() => handleSortColumn("name")}
-                    >
+                  <TableCell sx={{ color: "grey.400", whiteSpace: "nowrap" }} sortDirection={sortField === "name" ? sortDirection : false}>
+                    <TableSortLabel active={sortField === "name"} direction={sortField === "name" ? sortDirection : "asc"} onClick={() => handleSortColumn("name")}>
                       Nombre
                     </TableSortLabel>
                   </TableCell>
 
-                  <TableCell
-                    sx={{
-                      color: "grey.400",
-                      display: { xs: "none", sm: "table-cell" },
-                    }}
-                  >
+                  <TableCell sx={{ color: "grey.400", display: { xs: "none", sm: "table-cell" } }}>
                     Descripción
                   </TableCell>
 
-                  <TableCell
-                    sx={{
-                      color: "grey.400",
-                      whiteSpace: "nowrap",
-                      display: { xs: "none", md: "table-cell" },
-                    }}
-                    sortDirection={
-                      sortField === "created_at" ? sortDirection : false
-                    }
-                  >
-                    <TableSortLabel
-                      active={sortField === "created_at"}
-                      direction={
-                        sortField === "created_at" ? sortDirection : "asc"
-                      }
-                      onClick={() => handleSortColumn("created_at")}
-                    >
+                  <TableCell sx={{ color: "grey.400", whiteSpace: "nowrap", display: { xs: "none", md: "table-cell" } }} sortDirection={sortField === "created_at" ? sortDirection : false}>
+                    <TableSortLabel active={sortField === "created_at"} direction={sortField === "created_at" ? sortDirection : "asc"} onClick={() => handleSortColumn("created_at")}>
                       Creado
                     </TableSortLabel>
                   </TableCell>
 
-                  <TableCell
-                    sx={{
-                      color: "grey.400",
-                      whiteSpace: "nowrap",
-                      display: { xs: "none", md: "table-cell" },
-                    }}
-                    sortDirection={
-                      sortField === "updated_at" ? sortDirection : false
-                    }
-                  >
-                    <TableSortLabel
-                      active={sortField === "updated_at"}
-                      direction={
-                        sortField === "updated_at" ? sortDirection : "asc"
-                      }
-                      onClick={() => handleSortColumn("updated_at")}
-                    >
+                  <TableCell sx={{ color: "grey.400", whiteSpace: "nowrap", display: { xs: "none", md: "table-cell" } }} sortDirection={sortField === "updated_at" ? sortDirection : false}>
+                    <TableSortLabel active={sortField === "updated_at"} direction={sortField === "updated_at" ? sortDirection : "asc"} onClick={() => handleSortColumn("updated_at")}>
                       Actualizado
                     </TableSortLabel>
                   </TableCell>
 
-                  <TableCell
-                    sx={{ color: "grey.400", textAlign: "right" }}
-                    align="right"
-                  >
+                  <TableCell sx={{ color: "grey.400", textAlign: "right" }} align="right">
                     Acciones
                   </TableCell>
                 </TableRow>
@@ -409,66 +255,25 @@ export default function ProjectsView() {
 
               <TableBody>
                 {displayProjects.map((p) => (
-                  <TableRow
-                    key={p.id}
-                    hover
-                    onClick={() => handleOpenEdit(p)}
-                    sx={{ cursor: "pointer" }}
-                  >
+                  <TableRow key={p.id} hover onClick={() => handleOpenEdit(p)} sx={{ cursor: "pointer" }}>
                     <TableCell>{p.id}</TableCell>
                     <TableCell>{p.name}</TableCell>
 
-                    <TableCell
-                      sx={{
-                        maxWidth: 240,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        display: { xs: "none", sm: "table-cell" },
-                      }}
-                    >
+                    <TableCell sx={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: { xs: "none", sm: "table-cell" } }}>
                       {p.description}
                     </TableCell>
 
                     <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
-                      {p.created_at &&
-                        new Date(p.created_at).toLocaleString()}
+                      {p.created_at && new Date(p.created_at).toLocaleString()}
                     </TableCell>
                     <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
-                      {p.updated_at &&
-                        new Date(p.updated_at).toLocaleString()}
+                      {p.updated_at && new Date(p.updated_at).toLocaleString()}
                     </TableCell>
 
                     <TableCell align="right">
-                      <Box
-                        sx={{
-                          display: "flex",
-                          gap: 1,
-                          justifyContent: "flex-end",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <Button
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenEdit(p);
-                          }}
-                          sx={{ minWidth: 0 }}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="small"
-                          color="error"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDeleteDialog(p); // 👈 ahora abre el Dialog MUI
-                          }}
-                          sx={{ minWidth: 0 }}
-                        >
-                          Eliminar
-                        </Button>
+                      <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                        <Button size="small" onClick={(e) => { e.stopPropagation(); handleOpenEdit(p); }} sx={{ minWidth: 0 }}>Editar</Button>
+                        <Button size="small" color="error" onClick={(e) => { e.stopPropagation(); openDeleteDialog(p); }} sx={{ minWidth: 0 }}>Eliminar</Button>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -477,9 +282,7 @@ export default function ProjectsView() {
                 {displayProjects.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6}>
-                      <Typography variant="body2" sx={{ color: "grey.400" }}>
-                        No se encontraron proyectos.
-                      </Typography>
+                      <Typography variant="body2" sx={{ color: "grey.400" }}>No se encontraron proyectos.</Typography>
                     </TableCell>
                   </TableRow>
                 )}
@@ -494,70 +297,33 @@ export default function ProjectsView() {
         <DialogTitle>Editar proyecto</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-            <TextField
-              label="Nombre"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              autoFocus
-              fullWidth
-            />
-            <TextField
-              label="Descripción"
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              multiline
-              minRows={2}
-              fullWidth
-            />
+            <TextField label="Nombre" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus fullWidth />
+            <TextField label="Descripción" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} multiline minRows={2} fullWidth />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseEdit}>Cancelar</Button>
-          <Button onClick={handleSaveEdit} variant="contained">
-            Guardar
-          </Button>
+          <Button onClick={handleSaveEdit} variant="contained">Guardar</Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog de confirmación de borrado */}
-      <Dialog
-        open={confirmDelete.open}
-        onClose={closeDeleteDialog}
-        fullWidth
-        maxWidth="xs"
-      >
+      <Dialog open={confirmDelete.open} onClose={closeDeleteDialog} fullWidth maxWidth="xs">
         <DialogTitle>Eliminar proyecto</DialogTitle>
         <DialogContent>
           <Typography>
-            ¿Estás seguro de que querés eliminar el proyecto{" "}
-            <strong>{confirmDelete.name}</strong>? Esta acción no se puede deshacer.
+            ¿Estás seguro de que querés eliminar el proyecto <strong>{confirmDelete.name}</strong>? Esta acción no se puede deshacer.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={closeDeleteDialog}>Cancelar</Button>
-          <Button
-            onClick={handleConfirmDelete}
-            color="error"
-            variant="contained"
-          >
-            Eliminar
-          </Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">Eliminar</Button>
         </DialogActions>
       </Dialog>
 
       {/* 🔔 Snackbar global del componente */}
-      <Snackbar
-        open={alertInfo.open}
-        autoHideDuration={4000}
-        onClose={handleCloseAlert}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert
-          onClose={handleCloseAlert}
-          severity={alertInfo.severity}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
+      <Snackbar open={alertInfo.open} autoHideDuration={4000} onClose={handleCloseAlert} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
+        <Alert onClose={handleCloseAlert} severity={alertInfo.severity} variant="filled" sx={{ width: "100%" }}>
           {alertInfo.message}
         </Alert>
       </Snackbar>

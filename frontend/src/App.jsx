@@ -1,11 +1,6 @@
 // src/App.jsx
 import { useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Drawer,
-  useMediaQuery,
-} from "@mui/material";
+import { Box, Typography, Drawer, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useAppStore from "./store/useAppStore";
 
@@ -21,16 +16,7 @@ import Config from "./views/Config.jsx";
 const drawerWidth = 240;
 
 export default function App() {
-  const {
-    userName,
-    currentView,
-    setView,
-    fetchProjects,
-    fetchTickets,
-    error,
-    token,
-    initAuth,
-  } = useAppStore();
+  const { userName, currentView, setView, fetchProjects, fetchTickets, error, token, initAuth } = useAppStore();
 
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
@@ -52,7 +38,7 @@ export default function App() {
   let content = null;
   if (currentView === "tickets") content = <TicketsView />;
   else if (currentView === "projects") content = <ProjectsView />;
-  else if (currentView === "config") content = <Config/>;
+  else if (currentView === "config") content = <Config />;
   else content = <DashboardView />;
 
   if (!token) {
@@ -63,62 +49,29 @@ export default function App() {
   const handleCloseSidebar = () => setMobileOpen(false);
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        minHeight: "100vh",
-        bgcolor: "#020617",
-        color: "grey.100",
-      }}
-    >
-      {/* SIDEBAR ESCRITORIO (permanente) */}
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#020617", color: "grey.100" }}>
       {isDesktop && (
-        <Box
-          sx={{
-            width: drawerWidth,
-            flexShrink: 0,
-          }}
-        >
-          <Sidebar
-            currentView={currentView}
-            onChangeView={setView}
-          />
+        <Box sx={{ width: drawerWidth, flexShrink: 0 }}>
+          <Sidebar currentView={currentView} onChangeView={setView} />
         </Box>
       )}
 
-      {/* SIDEBAR MÓVIL (Drawer) */}
       {!isDesktop && (
         <Drawer
           open={mobileOpen}
           onClose={handleCloseSidebar}
           variant="temporary"
           ModalProps={{ keepMounted: true }}
-          PaperProps={{
-            sx: {
-              width: drawerWidth,
-              bgcolor: "#020617",
-            },
-          }}
+          PaperProps={{ sx: { width: drawerWidth, bgcolor: "#020617" } }}
         >
-          <Sidebar
-            currentView={currentView}
-            onChangeView={setView}
-            onItemClick={handleCloseSidebar}
-          />
+          <Sidebar currentView={currentView} onChangeView={setView} onItemClick={handleCloseSidebar} />
         </Drawer>
       )}
 
-      {/* CONTENIDO PRINCIPAL */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        {/* TopBar con botón hamburguesa en mobile */}
         <TopBar userName={userName} onOpenSidebar={handleOpenSidebar} />
 
-        <Box
-          sx={{
-            flex: 1,
-            p: { xs: 2, md: 3 },
-          }}
-        >
+        <Box sx={{ flex: 1, p: { xs: 2, md: 3 } }}>
           {error && (
             <Typography color="error" sx={{ mb: 2 }}>
               {error}
