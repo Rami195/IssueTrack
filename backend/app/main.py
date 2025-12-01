@@ -26,15 +26,17 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,       
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 
 # --------- Helpers de user/auth ---------
+
 
 def get_user_by_username(db: Session, username: str) -> models.User | None:
     return db.query(models.User).filter(models.User.username == username).first()
@@ -57,7 +59,7 @@ def get_current_user(
     if username is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            detail="No se pudieron validar las credenciales.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -65,13 +67,14 @@ def get_current_user(
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
+            detail="Usuario no encontrado.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
 
 
 # ---------- AUTH / USERS ----------
+
 
 @app.post("/users", response_model=schemas.UserRead)
 def create_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -86,7 +89,7 @@ def create_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already registered",
+            detail="Nombre de usuario o correo ya registrados.",
         )
 
     hashed_password = get_password_hash(user_in.password)
@@ -112,7 +115,7 @@ def login_for_access_token(
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Usuario o contraseña incorrectos.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -123,6 +126,7 @@ def login_for_access_token(
 @app.get("/users/me", response_model=schemas.UserRead)
 def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
 
 @app.put("/users/update")
 def update_user(
@@ -139,7 +143,7 @@ def update_user(
         )
         if user_with_same_username and user_with_same_username.id != current_user.id:
             raise HTTPException(
-                status_code=400, detail="Username already in use"
+                status_code=400, detail="El nombre de usuario ya está en uso."
             )
         current_user.username = data.username
 
@@ -152,7 +156,7 @@ def update_user(
         )
         if user_with_same_email and user_with_same_email.id != current_user.id:
             raise HTTPException(
-                status_code=400, detail="Email already in use"
+                status_code=400, detail="El correo electrónico ya está en uso."
             )
         current_user.email = data.email
 
@@ -164,14 +168,15 @@ def update_user(
     db.commit()
     db.refresh(current_user)
 
-    return {"message": "User updated successfully"}
+    return {"message": "Usuario actualizado correctamente."}
 
 
 # ---------- RUTAS BÁSICAS ----------
 
+
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to IssueHub API"}
+    return {"message": "Bienvenido a IssueHub API"}
 
 
 @app.get("/health")
@@ -181,15 +186,16 @@ def health_check():
 
 # ---------- PROJECTS ----------
 
+
 @app.post("/projects", response_model=schemas.ProjectRead)
 def create_project(
     project: schemas.ProjectCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user),
 ):
     db_project = models.Project(
         **project.dict(),
-        owner_id=current_user.id  
+        owner_id=current_user.id,
     )
     db.add(db_project)
     db.commit()
@@ -202,9 +208,11 @@ def list_projects(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    return db.query(models.Project).filter(
-    models.Project.owner_id == current_user.id
-).all()
+    return (
+        db.query(models.Project)
+        .filter(models.Project.owner_id == current_user.id)
+        .all()
+    )
 
 
 @app.get("/projects/{project_id}", response_model=schemas.ProjectWithTickets)
@@ -215,11 +223,14 @@ def get_project(
 ):
     project = (
         db.query(models.Project)
-        .filter(models.Project.id == project_id)
+        .filter(
+            models.Project.id == project_id,
+            models.Project.owner_id == current_user.id,
+        )
         .first()
     )
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, detail="Proyecto no encontrado.")
     return project
 
 
@@ -232,11 +243,14 @@ def update_project(
 ):
     project = (
         db.query(models.Project)
-        .filter(models.Project.id == project_id)
+        .filter(
+            models.Project.id == project_id,
+            models.Project.owner_id == current_user.id,
+        )
         .first()
     )
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, detail="Proyecto no encontrado.")
 
     for key, value in project_update.dict(exclude_unset=True).items():
         setattr(project, key, value)
@@ -254,15 +268,26 @@ def delete_project(
 ):
     project = (
         db.query(models.Project)
-        .filter(models.Project.id == project_id)
+        .filter(
+            models.Project.id == project_id,
+            models.Project.owner_id == current_user.id,
+        )
         .first()
     )
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, detail="Proyecto no encontrado.")
 
-    db.query(models.Ticket).filter(
-        models.Ticket.project_id == project_id
-    ).delete(synchronize_session=False)
+    # 👇 NO permitir eliminar si tiene tickets asociados
+    tickets_count = (
+        db.query(models.Ticket)
+        .filter(models.Ticket.project_id == project_id)
+        .count()
+    )
+    if tickets_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar el proyecto porque tiene tickets asociados.",
+        )
 
     db.delete(project)
     db.commit()
@@ -271,23 +296,31 @@ def delete_project(
 
 # ---------- TICKETS ----------
 
+
 @app.post("/tickets", response_model=schemas.TicketRead)
 def create_ticket(
     ticket: schemas.TicketCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    # verificar que el proyecto exista y sea del usuario
     project = (
         db.query(models.Project)
-        .filter(models.Project.id == ticket.project_id)
+        .filter(
+            models.Project.id == ticket.project_id,
+            models.Project.owner_id == current_user.id,
+        )
         .first()
     )
     if not project:
-        raise HTTPException(status_code=400, detail="Project does not exist")
+        raise HTTPException(
+            status_code=400,
+            detail="El proyecto no existe o no pertenece al usuario actual.",
+        )
 
     db_ticket = models.Ticket(
         **ticket.dict(),
-        owner_id=current_user.id    
+        owner_id=current_user.id,
     )
     db.add(db_ticket)
     db.commit()
@@ -300,10 +333,11 @@ def list_tickets(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    return db.query(models.Ticket).filter(
-    models.Ticket.owner_id == current_user.id
-).all()
-
+    return (
+        db.query(models.Ticket)
+        .filter(models.Ticket.owner_id == current_user.id)
+        .all()
+    )
 
 
 @app.get("/tickets/{ticket_id}", response_model=schemas.TicketRead)
@@ -313,14 +347,16 @@ def get_ticket(
     current_user: models.User = Depends(get_current_user),
 ):
     ticket = (
-    db.query(models.Ticket)
-    .filter(models.Ticket.id == ticket_id)
-    .filter(models.Ticket.owner_id == current_user.id)  # 🔥
-    .first()
-)
+        db.query(models.Ticket)
+        .filter(
+            models.Ticket.id == ticket_id,
+            models.Ticket.owner_id == current_user.id,
+        )
+        .first()
+    )
 
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="Ticket no encontrado.")
     return ticket
 
 
@@ -333,23 +369,30 @@ def update_ticket(
 ):
     ticket = (
         db.query(models.Ticket)
-        .filter(models.Ticket.id == ticket_id)
+        .filter(
+            models.Ticket.id == ticket_id,
+            models.Ticket.owner_id == current_user.id,
+        )
         .first()
     )
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="Ticket no encontrado.")
 
     data = ticket_update.dict(exclude_unset=True)
 
     if "project_id" in data:
         project = (
             db.query(models.Project)
-            .filter(models.Project.id == data["project_id"])
+            .filter(
+                models.Project.id == data["project_id"],
+                models.Project.owner_id == current_user.id,
+            )
             .first()
         )
         if not project:
             raise HTTPException(
-                status_code=400, detail="Project does not exist"
+                status_code=400,
+                detail="El proyecto no existe o no pertenece al usuario actual.",
             )
 
     for key, value in data.items():
@@ -367,13 +410,15 @@ def delete_ticket(
     current_user: models.User = Depends(get_current_user),
 ):
     ticket = (
-    db.query(models.Ticket)
-    .filter(models.Ticket.id == ticket_id)
-    .filter(models.Ticket.owner_id == current_user.id)
-    .first()
-)
+        db.query(models.Ticket)
+        .filter(
+            models.Ticket.id == ticket_id,
+            models.Ticket.owner_id == current_user.id,
+        )
+        .first()
+    )
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
+        raise HTTPException(status_code=404, detail="Ticket no encontrado.")
 
     db.delete(ticket)
     db.commit()

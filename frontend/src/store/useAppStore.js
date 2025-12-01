@@ -17,11 +17,12 @@ const useAppStore = create((set, get) => ({
   loading: false,
   error: null,
   clearError: () => set({ error: null }),
+  
   // búsqueda global (dashboard, projects, tickets)
   searchQuery: "",
   setSearchQuery: (q) => set({ searchQuery: q }),
 
-  setView: (view) => set({ currentView: view }),
+  setView: (view) => set({ currentView: view, error: null }),
 
   initAuth: () => {
     const token = localStorage.getItem("ih_token");

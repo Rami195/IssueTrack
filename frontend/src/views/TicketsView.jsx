@@ -1,5 +1,27 @@
 import { useState, useMemo, useCallback } from "react";
-import { Box, Button, Card, CardContent, MenuItem, Table, TableHead, TableRow, TableCell, TableBody, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TableSortLabel, TableContainer, Chip } from "@mui/material";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  MenuItem,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TextField,
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TableSortLabel,
+  TableContainer,
+  Chip,
+  Snackbar,
+  Alert,
+} from "@mui/material";
 import useAppStore from "../store/useAppStore";
 
 export default function TicketsView() {
@@ -31,12 +53,62 @@ export default function TicketsView() {
   const [editStatus, setEditStatus] = useState("open");
   const [editProjectId, setEditProjectId] = useState("");
 
-  // único filtro visible arriba: por proyecto
+  // filtro
   const [filterProject, setFilterProject] = useState("all");
 
-  // orden (click en encabezados)
-  const [sortField, setSortField] = useState("id"); // id | title | project | priority | status
+  // orden
+  const [sortField, setSortField] = useState("id");
   const [sortDirection, setSortDirection] = useState("desc");
+
+  // 🔔 Snackbar / Alert MUI
+  const [alertInfo, setAlertInfo] = useState({
+    open: false,
+    message: "",
+    severity: "success", // "success" | "error" | "warning" | "info"
+  });
+
+  const showAlert = (message, severity = "success") => {
+    setAlertInfo({ open: true, message, severity });
+  };
+
+  const handleCloseAlert = (_, reason) => {
+    if (reason === "clickaway") return;
+    setAlertInfo((prev) => ({ ...prev, open: false }));
+  };
+
+  // 🔥 Diálogo de confirmación de borrado
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ticketToDelete, setTicketToDelete] = useState(null);
+
+  const openDeleteDialog = (ticket) => {
+    setTicketToDelete(ticket);
+    setDeleteDialogOpen(true);
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setTicketToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!ticketToDelete) return;
+
+    if (typeof deleteTicket !== "function") {
+      console.error("deleteTicket NO es una función:", deleteTicket);
+      showAlert("Error interno: deleteTicket no es una función", "error");
+      return;
+    }
+
+    try {
+      await deleteTicket(ticketToDelete.id);
+      showAlert("Ticket eliminado correctamente.", "info");
+    } catch (err) {
+      console.error("Error al eliminar ticket:", err);
+      showAlert(err?.message || "Error al eliminar ticket", "error");
+    } finally {
+      closeDeleteDialog();
+    }
+  };
 
   const projectNameById = useCallback(
     (id) => safeProjects.find((p) => p.id === id)?.name || `#${id}`,
@@ -45,23 +117,42 @@ export default function TicketsView() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !projectId) return;
+
+    if (!title.trim() || !projectId) {
+      showAlert(
+        "Debes ingresar un título y seleccionar un proyecto.",
+        "warning"
+      );
+      return;
+    }
+
+    if (typeof createTicket !== "function") {
+      console.error("createTicket NO es una función:", createTicket);
+      showAlert("Error interno: createTicket no es una función", "error");
+      return;
+    }
 
     const payload = {
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       status,
       priority,
       project_id: Number(projectId),
     };
 
-    await createTicket(payload);
+    try {
+      await createTicket(payload);
+      showAlert("Ticket creado correctamente.", "success");
 
-    setTitle("");
-    setDescription("");
-    setPriority("medium");
-    setStatus("open");
-    setProjectId("");
+      setTitle("");
+      setDescription("");
+      setPriority("medium");
+      setStatus("open");
+      setProjectId("");
+    } catch (err) {
+      console.error("Error al crear ticket:", err);
+      showAlert(err?.message || "Error al crear ticket", "error");
+    }
   };
 
   const handleOpenEdit = (ticket) => {
@@ -85,23 +176,35 @@ export default function TicketsView() {
   };
 
   const handleSaveEdit = async () => {
-    if (!editTicketId || !editTitle.trim() || !editProjectId) return;
+    if (!editTicketId || !editTitle.trim() || !editProjectId) {
+      showAlert(
+        "El título y el proyecto son obligatorios para editar el ticket.",
+        "warning"
+      );
+      return;
+    }
+
+    if (typeof updateTicket !== "function") {
+      console.error("updateTicket NO es una función:", updateTicket);
+      showAlert("Error interno: updateTicket no es una función", "error");
+      return;
+    }
 
     const payload = {
-      title: editTitle,
-      description: editDescription,
+      title: editTitle.trim(),
+      description: editDescription.trim(),
       priority: editPriority,
       status: editStatus,
       project_id: Number(editProjectId),
     };
 
-    await updateTicket(editTicketId, payload);
-    handleCloseEdit();
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm("¿Eliminar este ticket?")) {
-      await deleteTicket(id);
+    try {
+      await updateTicket(editTicketId, payload);
+      showAlert("Ticket actualizado correctamente.", "success");
+      handleCloseEdit();
+    } catch (err) {
+      console.error("Error al actualizar ticket:", err);
+      showAlert(err?.message || "Error al actualizar ticket", "error");
     }
   };
 
@@ -114,7 +217,6 @@ export default function TicketsView() {
     }
   };
 
-  // 🔎 filtros + orden
   const displayTickets = useMemo(() => {
     const q = (searchQuery ?? "").trim().toLowerCase();
 
@@ -126,7 +228,6 @@ export default function TicketsView() {
     };
 
     let result = safeTickets.filter((t) => {
-      // búsqueda (título / descripción / nombre de proyecto)
       if (q) {
         const projectName = projectNameById(t.project_id).toLowerCase();
         const matches =
@@ -137,7 +238,6 @@ export default function TicketsView() {
         if (!matches) return false;
       }
 
-      // único filtro: por proyecto
       if (
         filterProject !== "all" &&
         String(t.project_id) !== String(filterProject)
@@ -177,7 +277,6 @@ export default function TicketsView() {
         return va.localeCompare(vb) * dir;
       }
 
-      // por defecto: ordenar por id
       return (a.id - b.id) * dir;
     });
 
@@ -412,7 +511,12 @@ export default function TicketsView() {
 
               <TableBody>
                 {displayTickets.map((t) => (
-                  <TableRow key={t.id} hover  onClick={() => handleOpenEdit(t)}  sx={{ cursor: "pointer" }}   >
+                  <TableRow
+                    key={t.id}
+                    hover
+                    onClick={() => handleOpenEdit(t)}
+                    sx={{ cursor: "pointer" }}
+                  >
                     <TableCell>{t.id}</TableCell>
                     <TableCell>{t.title}</TableCell>
                     <TableCell>{projectNameById(t.project_id)}</TableCell>
@@ -423,20 +527,20 @@ export default function TicketsView() {
                       {t.priority === "low"
                         ? "Baja"
                         : t.priority === "medium"
-                          ? "Media"
-                          : t.priority === "high"
-                            ? "Alta"
-                            : t.priority}
+                        ? "Media"
+                        : t.priority === "high"
+                        ? "Alta"
+                        : t.priority}
                     </TableCell>
 
                     <TableCell
                       sx={{
                         display: { xs: "none", sm: "table-cell" },
-                       
                       }}
-            
                     >
-                      <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+                      <Box
+                        sx={{ display: "flex", justifyContent: "flex-start" }}
+                      >
                         {(() => {
                           const status = (t.status || "").toLowerCase();
 
@@ -444,10 +548,10 @@ export default function TicketsView() {
                             status === "open"
                               ? "Abierto"
                               : status === "pending"
-                                ? "Pendiente"
-                                : status === "closed"
-                                  ? "Cerrado"
-                                  : t.status || "N/A";
+                              ? "Pendiente"
+                              : status === "closed"
+                              ? "Cerrado"
+                              : t.status || "N/A";
 
                           return (
                             <Chip
@@ -458,29 +562,28 @@ export default function TicketsView() {
                                 textTransform: "none",
                                 borderColor:
                                   status === "open"
-                                    ? "rgba(34,197,94,0.7)"      // verde
+                                    ? "rgba(34,197,94,0.7)"
                                     : status === "pending"
-                                      ? "rgba(234,179,8,0.8)"      // amarillo
-                                      : "rgba(248,113,113,0.8)",   // rojo
+                                    ? "rgba(234,179,8,0.8)"
+                                    : "rgba(248,113,113,0.8)",
                                 bgcolor:
                                   status === "open"
                                     ? "rgba(22,163,74,0.15)"
                                     : status === "pending"
-                                      ? "rgba(202,138,4,0.18)"
-                                      : "rgba(239,68,68,0.16)",
+                                    ? "rgba(202,138,4,0.18)"
+                                    : "rgba(239,68,68,0.16)",
                                 color:
                                   status === "open"
                                     ? "#4ade80"
                                     : status === "pending"
-                                      ? "#facc15"
-                                      : "#fca5a5",
+                                    ? "#facc15"
+                                    : "#fca5a5",
                               }}
                             />
                           );
                         })()}
                       </Box>
                     </TableCell>
-
 
                     <TableCell align="right">
                       <Box
@@ -493,7 +596,10 @@ export default function TicketsView() {
                       >
                         <Button
                           size="small"
-                          onClick={() => handleOpenEdit(t)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEdit(t);
+                          }}
                           sx={{ minWidth: 0 }}
                         >
                           Editar
@@ -501,7 +607,10 @@ export default function TicketsView() {
                         <Button
                           size="small"
                           color="error"
-                          onClick={() => handleDelete(t.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteDialog(t);
+                          }}
                           sx={{ minWidth: 0 }}
                         >
                           Eliminar
@@ -526,7 +635,7 @@ export default function TicketsView() {
         </CardContent>
       </Card>
 
-      {/* Diálogo de edición */}
+     
       <Dialog open={editOpen} onClose={handleCloseEdit} fullWidth maxWidth="md">
         <DialogTitle>Editar ticket</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
@@ -598,6 +707,50 @@ export default function TicketsView() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={closeDeleteDialog}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Eliminar ticket</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Estás seguro de que querés eliminar el ticket{" "}
+            <strong>{ticketToDelete?.title}</strong>? Esta acción no se puede
+            deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog}>Cancelar</Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+          >
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      
+      <Snackbar
+        open={alertInfo.open}
+        autoHideDuration={4000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseAlert}
+          severity={alertInfo.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {alertInfo.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

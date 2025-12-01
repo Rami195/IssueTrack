@@ -1,3 +1,4 @@
+// src/views/ProjectsView.jsx
 import { useState, useMemo } from "react";
 import {
   Box,
@@ -18,6 +19,8 @@ import {
   DialogActions,
   TableSortLabel,
   TableContainer,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import useAppStore from "../store/useAppStore";
 
@@ -44,6 +47,13 @@ export default function ProjectsView() {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
 
+  // confirmación de borrado (MUI Dialog)
+  const [confirmDelete, setConfirmDelete] = useState({
+    open: false,
+    id: null,
+    name: "",
+  });
+
   // filtro (placeholder)
   const [filterType, setFilterType] = useState("all");
 
@@ -51,14 +61,34 @@ export default function ProjectsView() {
   const [sortField, setSortField] = useState("id"); // id | name | created_at | updated_at
   const [sortDirection, setSortDirection] = useState("asc");
 
+  // 🔔 Snackbar / Alert MUI
+  const [alertInfo, setAlertInfo] = useState({
+    open: false,
+    message: "",
+    severity: "success", // "success" | "error" | "warning" | "info"
+  });
+
+  const showAlert = (message, severity = "success") => {
+    setAlertInfo({ open: true, message, severity });
+  };
+
+  const handleCloseAlert = (_, reason) => {
+    if (reason === "clickaway") return;
+    setAlertInfo((prev) => ({ ...prev, open: false }));
+  };
+
+  // ------------ Crear proyecto ------------
   const handleCreate = async (e) => {
     e?.preventDefault?.();
 
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      showAlert("Debes ingresar al menos un nombre para el proyecto.", "warning");
+      return;
+    }
 
     if (typeof createProject !== "function") {
       console.error("createProject NO es una función:", createProject);
-      alert("Error interno: createProject no es una función");
+      showAlert("Error interno: createProject no es una función", "error");
       return;
     }
 
@@ -68,14 +98,17 @@ export default function ProjectsView() {
         description: description.trim(),
       });
 
+      showAlert("Proyecto creado correctamente.", "success");
+
       setName("");
       setDescription("");
     } catch (err) {
       console.error("Error al crear proyecto:", err);
-      alert(err?.message || "Error al crear proyecto");
+      showAlert(err?.message || "Error al crear proyecto", "error");
     }
   };
 
+  // ------------ Editar proyecto ------------
   const handleOpenEdit = (project) => {
     setEditProjectId(project.id);
     setEditName(project.name || "");
@@ -91,11 +124,14 @@ export default function ProjectsView() {
   };
 
   const handleSaveEdit = async () => {
-    if (!editProjectId || !editName.trim()) return;
+    if (!editProjectId || !editName.trim()) {
+      showAlert("El nombre del proyecto no puede estar vacío.", "warning");
+      return;
+    }
 
     if (typeof updateProject !== "function") {
       console.error("updateProject NO es una función:", updateProject);
-      alert("Error interno: updateProject no es una función");
+      showAlert("Error interno: updateProject no es una función", "error");
       return;
     }
 
@@ -104,30 +140,53 @@ export default function ProjectsView() {
         name: editName.trim(),
         description: editDescription.trim(),
       });
+
+      showAlert("Proyecto actualizado correctamente.", "success");
+
       handleCloseEdit();
     } catch (err) {
       console.error("Error al actualizar proyecto:", err);
-      alert(err?.message || "Error al actualizar proyecto");
+      showAlert(err?.message || "Error al actualizar proyecto", "error");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("¿Eliminar este proyecto?")) return;
+  // ------------ Eliminar proyecto (con Dialog MUI) ------------
+  const openDeleteDialog = (project) => {
+    setConfirmDelete({
+      open: true,
+      id: project.id,
+      name: project.name || "",
+    });
+  };
+
+  const closeDeleteDialog = () => {
+    setConfirmDelete({ open: false, id: null, name: "" });
+  };
+
+  const handleConfirmDelete = async () => {
+    const id = confirmDelete.id;
+    if (!id) return;
 
     if (typeof deleteProject !== "function") {
       console.error("deleteProject NO es una función:", deleteProject);
-      alert("Error interno: deleteProject no es una función");
+      showAlert("Error interno: deleteProject no es una función", "error");
+      closeDeleteDialog();
       return;
     }
 
     try {
       await deleteProject(id);
+      showAlert("Proyecto eliminado correctamente.", "info");
     } catch (err) {
       console.error("Error al eliminar proyecto:", err);
-      alert(err?.message || "Error al eliminar proyecto");
+      // acá te va a llegar, por ejemplo, "No se puede eliminar el proyecto porque tiene tickets asociados."
+      showAlert(err?.message || "Error al eliminar proyecto", "error");
+    } finally {
+      closeDeleteDialog();
     }
   };
 
+  // ------------ Orden / filtro / búsqueda ------------
   const handleSortColumn = (field) => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -184,6 +243,7 @@ export default function ProjectsView() {
     return result;
   }, [safeProjects, safeSearch, filterType, sortField, sortDirection]);
 
+  // ================= RENDER =================
   return (
     <>
       <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>
@@ -257,7 +317,6 @@ export default function ProjectsView() {
         }}
       >
         <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
-          {/* Contenedor scrolleable para móvil */}
           <TableContainer sx={{ maxHeight: { xs: 400, md: "none" } }}>
             <Table size="small" stickyHeader={false}>
               <TableHead>
@@ -277,9 +336,7 @@ export default function ProjectsView() {
 
                   <TableCell
                     sx={{ color: "grey.400", whiteSpace: "nowrap" }}
-                    sortDirection={
-                      sortField === "name" ? sortDirection : false
-                    }
+                    sortDirection={sortField === "name" ? sortDirection : false}
                   >
                     <TableSortLabel
                       active={sortField === "name"}
@@ -290,7 +347,6 @@ export default function ProjectsView() {
                     </TableSortLabel>
                   </TableCell>
 
-                  {/* Ocultamos descripción en XS si querés más compacto */}
                   <TableCell
                     sx={{
                       color: "grey.400",
@@ -353,7 +409,12 @@ export default function ProjectsView() {
 
               <TableBody>
                 {displayProjects.map((p) => (
-                  <TableRow key={p.id} hover onClick={() => handleOpenEdit(p)}  sx={{ cursor: "pointer" }}  >
+                  <TableRow
+                    key={p.id}
+                    hover
+                    onClick={() => handleOpenEdit(p)}
+                    sx={{ cursor: "pointer" }}
+                  >
                     <TableCell>{p.id}</TableCell>
                     <TableCell>{p.name}</TableCell>
 
@@ -369,15 +430,11 @@ export default function ProjectsView() {
                       {p.description}
                     </TableCell>
 
-                    <TableCell
-                      sx={{ display: { xs: "none", md: "table-cell" } }}
-                    >
+                    <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
                       {p.created_at &&
                         new Date(p.created_at).toLocaleString()}
                     </TableCell>
-                    <TableCell
-                      sx={{ display: { xs: "none", md: "table-cell" } }}
-                    >
+                    <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
                       {p.updated_at &&
                         new Date(p.updated_at).toLocaleString()}
                     </TableCell>
@@ -393,7 +450,10 @@ export default function ProjectsView() {
                       >
                         <Button
                           size="small"
-                          onClick={() => handleOpenEdit(p)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEdit(p);
+                          }}
                           sx={{ minWidth: 0 }}
                         >
                           Editar
@@ -401,7 +461,10 @@ export default function ProjectsView() {
                         <Button
                           size="small"
                           color="error"
-                          onClick={() => handleDelete(p.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteDialog(p); // 👈 ahora abre el Dialog MUI
+                          }}
                           sx={{ minWidth: 0 }}
                         >
                           Eliminar
@@ -427,12 +490,7 @@ export default function ProjectsView() {
       </Card>
 
       {/* Modal de edición */}
-      <Dialog
-        open={editOpen}
-        onClose={handleCloseEdit}
-        fullWidth
-        maxWidth="sm"
-      >
+      <Dialog open={editOpen} onClose={handleCloseEdit} fullWidth maxWidth="sm">
         <DialogTitle>Editar proyecto</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
@@ -460,6 +518,49 @@ export default function ProjectsView() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog de confirmación de borrado */}
+      <Dialog
+        open={confirmDelete.open}
+        onClose={closeDeleteDialog}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Eliminar proyecto</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Estás seguro de que querés eliminar el proyecto{" "}
+            <strong>{confirmDelete.name}</strong>? Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog}>Cancelar</Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+          >
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 🔔 Snackbar global del componente */}
+      <Snackbar
+        open={alertInfo.open}
+        autoHideDuration={4000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseAlert}
+          severity={alertInfo.severity}
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {alertInfo.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

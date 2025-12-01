@@ -1,4 +1,3 @@
-// src/views/AuthView.jsx
 import {
   Box,
   Paper,
@@ -14,13 +13,14 @@ import { useState } from "react";
 import useAppStore from "../store/useAppStore";
 
 export default function AuthView() {
-  const [mode, setMode] = useState("login"); // 'login' | 'register'
+  const [mode, setMode] = useState("login"); 
   const [form, setForm] = useState({
     username: "",
     password: "",
     full_name: "",
     email: "",
   });
+
 
   const { login, register, authLoading, error, clearError } = useAppStore();
 
@@ -30,69 +30,16 @@ export default function AuthView() {
   const handleChange = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  // --- normalizador de errores del backend (FastAPI / fetch) ---
-  const getBackendErrorMessage = (err) => {
-    if (!err) return "";
-
-    // 1) Si viene como string
-    if (typeof err === "string") {
-      if (err === "[object Object]") {
-        return "Ha ocurrido un error inesperado al comunicarse con el servidor.";
-      }
-      return err;
-    }
-
-    // 2) Si viene como objeto
-    if (typeof err === "object") {
-      // FastAPI: {"detail": "mensaje"}
-      if (typeof err.detail === "string") {
-        if (err.detail === "Incorrect username or password") {
-          return "Usuario o contraseña incorrectos.";
-        }
-        if (err.detail === "Username or email already registered") {
-          return "Nombre de usuario o correo ya registrados.";
-        }
-        return err.detail;
-      }
-
-      // FastAPI: {"detail": [ { msg, type, loc }, ... ]}
-      if (Array.isArray(err.detail) && err.detail.length > 0) {
-        const first = err.detail[0] || {};
-        const msg = first.msg || "";
-        const type = first.type || "";
-
-        // error de email
-        if (
-          type === "value_error.email" ||
-          msg.toLowerCase().includes("valid email address")
-        ) {
-          return "El correo electrónico no es válido. Debe tener un formato como usuario@dominio.com.";
-        }
-
-        return msg || "Error de validación en los datos enviados.";
-      }
-
-      if (err.message) return err.message;
-
-      try {
-        return JSON.stringify(err);
-      } catch {
-        return "Ha ocurrido un error inesperado.";
-      }
-    }
-
-    return String(err);
-  };
-
-  const backendErrorMessage = getBackendErrorMessage(error);
+  
+  const backendErrorMessage = error || "";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setClientError("");
     setSuccessMessage("");
-    clearError(); // 👈 limpiamos error del backend al reintentar
+    clearError(); 
 
-    // Validaciones de frontend
+
     if (!form.username.trim() || !form.password.trim()) {
       setClientError("Debes completar usuario y contraseña.");
       return;
@@ -118,12 +65,14 @@ export default function AuthView() {
           email: form.email || undefined,
         });
 
-        setSuccessMessage("Cuenta creada correctamente. Ahora podés iniciar sesión.");
+        setSuccessMessage(
+          "Cuenta creada correctamente. Ahora podés iniciar sesión."
+        );
         setForm((f) => ({ ...f, password: "" }));
         setMode("login");
       }
     } catch {
-      // el error ya está en el store; lo muestra backendErrorMessage
+      // el mensaje ya se guarda como string en el store (error)
     }
   };
 
@@ -182,7 +131,7 @@ export default function AuthView() {
             setMode(val);
             setClientError("");
             setSuccessMessage("");
-            clearError(); // 👈 limpiamos error del backend al cambiar de pestaña
+            clearError(); 
           }}
           variant="fullWidth"
           sx={{ mb: 3 }}
@@ -198,7 +147,7 @@ export default function AuthView() {
           </Alert>
         )}
 
-        {/* Error del backend */}
+        {/* Error del backend (ya en español) */}
         {backendErrorMessage && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {backendErrorMessage}
