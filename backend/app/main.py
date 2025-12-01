@@ -124,6 +124,48 @@ def login_for_access_token(
 def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
+@app.put("/users/update")
+def update_user(
+    data: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    # Cambiar username
+    if data.username:
+        user_with_same_username = (
+            db.query(models.User)
+            .filter(models.User.username == data.username)
+            .first()
+        )
+        if user_with_same_username and user_with_same_username.id != current_user.id:
+            raise HTTPException(
+                status_code=400, detail="Username already in use"
+            )
+        current_user.username = data.username
+
+    # Cambiar email
+    if data.email:
+        user_with_same_email = (
+            db.query(models.User)
+            .filter(models.User.email == data.email)
+            .first()
+        )
+        if user_with_same_email and user_with_same_email.id != current_user.id:
+            raise HTTPException(
+                status_code=400, detail="Email already in use"
+            )
+        current_user.email = data.email
+
+    # Cambiar contraseña
+    if data.password:
+        hashed = get_password_hash(data.password)
+        current_user.hashed_password = hashed
+
+    db.commit()
+    db.refresh(current_user)
+
+    return {"message": "User updated successfully"}
+
 
 # ---------- RUTAS BÁSICAS ----------
 
@@ -143,9 +185,12 @@ def health_check():
 def create_project(
     project: schemas.ProjectCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(get_current_user)
 ):
-    db_project = models.Project(**project.dict())
+    db_project = models.Project(
+        **project.dict(),
+        owner_id=current_user.id  
+    )
     db.add(db_project)
     db.commit()
     db.refresh(db_project)
@@ -157,7 +202,9 @@ def list_projects(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    return db.query(models.Project).all()
+    return db.query(models.Project).filter(
+    models.Project.owner_id == current_user.id
+).all()
 
 
 @app.get("/projects/{project_id}", response_model=schemas.ProjectWithTickets)
@@ -238,7 +285,10 @@ def create_ticket(
     if not project:
         raise HTTPException(status_code=400, detail="Project does not exist")
 
-    db_ticket = models.Ticket(**ticket.dict())
+    db_ticket = models.Ticket(
+        **ticket.dict(),
+        owner_id=current_user.id    
+    )
     db.add(db_ticket)
     db.commit()
     db.refresh(db_ticket)
@@ -250,7 +300,10 @@ def list_tickets(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    return db.query(models.Ticket).all()
+    return db.query(models.Ticket).filter(
+    models.Ticket.owner_id == current_user.id
+).all()
+
 
 
 @app.get("/tickets/{ticket_id}", response_model=schemas.TicketRead)
@@ -260,10 +313,12 @@ def get_ticket(
     current_user: models.User = Depends(get_current_user),
 ):
     ticket = (
-        db.query(models.Ticket)
-        .filter(models.Ticket.id == ticket_id)
-        .first()
-    )
+    db.query(models.Ticket)
+    .filter(models.Ticket.id == ticket_id)
+    .filter(models.Ticket.owner_id == current_user.id)  # 🔥
+    .first()
+)
+
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     return ticket
@@ -312,10 +367,11 @@ def delete_ticket(
     current_user: models.User = Depends(get_current_user),
 ):
     ticket = (
-        db.query(models.Ticket)
-        .filter(models.Ticket.id == ticket_id)
-        .first()
-    )
+    db.query(models.Ticket)
+    .filter(models.Ticket.id == ticket_id)
+    .filter(models.Ticket.owner_id == current_user.id)
+    .first()
+)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 

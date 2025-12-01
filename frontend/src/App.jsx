@@ -16,6 +16,7 @@ import DashboardView from "./views/DashboardView";
 import TicketsView from "./views/TicketsView";
 import ProjectsView from "./views/ProjectsView";
 import AuthView from "./views/AuthView";
+import Config from "./views/Config.jsx";
 
 const drawerWidth = 240;
 
@@ -51,6 +52,7 @@ export default function App() {
   let content = null;
   if (currentView === "tickets") content = <TicketsView />;
   else if (currentView === "projects") content = <ProjectsView />;
+  else if (currentView === "config") content = <Config/>;
   else content = <DashboardView />;
 
   if (!token) {

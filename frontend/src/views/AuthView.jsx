@@ -22,19 +22,94 @@ export default function AuthView() {
     email: "",
   });
 
-  const { login, register, authLoading, error } = useAppStore();
+  const { login, register, authLoading, error, clearError } = useAppStore();
+
+  const [clientError, setClientError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleChange = (field) => (e) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
 
+  // --- normalizador de errores del backend (FastAPI / fetch) ---
+  const getBackendErrorMessage = (err) => {
+    if (!err) return "";
+
+    // 1) Si viene como string
+    if (typeof err === "string") {
+      if (err === "[object Object]") {
+        return "Ha ocurrido un error inesperado al comunicarse con el servidor.";
+      }
+      return err;
+    }
+
+    // 2) Si viene como objeto
+    if (typeof err === "object") {
+      // FastAPI: {"detail": "mensaje"}
+      if (typeof err.detail === "string") {
+        if (err.detail === "Incorrect username or password") {
+          return "Usuario o contraseña incorrectos.";
+        }
+        if (err.detail === "Username or email already registered") {
+          return "Nombre de usuario o correo ya registrados.";
+        }
+        return err.detail;
+      }
+
+      // FastAPI: {"detail": [ { msg, type, loc }, ... ]}
+      if (Array.isArray(err.detail) && err.detail.length > 0) {
+        const first = err.detail[0] || {};
+        const msg = first.msg || "";
+        const type = first.type || "";
+
+        // error de email
+        if (
+          type === "value_error.email" ||
+          msg.toLowerCase().includes("valid email address")
+        ) {
+          return "El correo electrónico no es válido. Debe tener un formato como usuario@dominio.com.";
+        }
+
+        return msg || "Error de validación en los datos enviados.";
+      }
+
+      if (err.message) return err.message;
+
+      try {
+        return JSON.stringify(err);
+      } catch {
+        return "Ha ocurrido un error inesperado.";
+      }
+    }
+
+    return String(err);
+  };
+
+  const backendErrorMessage = getBackendErrorMessage(error);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setClientError("");
+    setSuccessMessage("");
+    clearError(); // 👈 limpiamos error del backend al reintentar
+
+    // Validaciones de frontend
+    if (!form.username.trim() || !form.password.trim()) {
+      setClientError("Debes completar usuario y contraseña.");
+      return;
+    }
+
+    if (mode === "register" && !form.email.trim()) {
+      setClientError("Debes ingresar un correo electrónico.");
+      return;
+    }
+
     try {
       if (mode === "login") {
         await login({
           username: form.username,
           password: form.password,
         });
+        setSuccessMessage("Sesión iniciada correctamente.");
       } else {
         await register({
           username: form.username,
@@ -42,9 +117,13 @@ export default function AuthView() {
           full_name: form.full_name || undefined,
           email: form.email || undefined,
         });
+
+        setSuccessMessage("Cuenta creada correctamente. Ahora podés iniciar sesión.");
+        setForm((f) => ({ ...f, password: "" }));
+        setMode("login");
       }
     } catch {
-      // el error ya se guarda en el store
+      // el error ya está en el store; lo muestra backendErrorMessage
     }
   };
 
@@ -99,7 +178,12 @@ export default function AuthView() {
 
         <Tabs
           value={mode}
-          onChange={(_, val) => setMode(val)}
+          onChange={(_, val) => {
+            setMode(val);
+            setClientError("");
+            setSuccessMessage("");
+            clearError(); // 👈 limpiamos error del backend al cambiar de pestaña
+          }}
           variant="fullWidth"
           sx={{ mb: 3 }}
         >
@@ -107,9 +191,24 @@ export default function AuthView() {
           <Tab label="Registrarse" value="register" />
         </Tabs>
 
-        {error && (
+        {/* Error del front */}
+        {clientError && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {clientError}
+          </Alert>
+        )}
+
+        {/* Error del backend */}
+        {backendErrorMessage && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {backendErrorMessage}
+          </Alert>
+        )}
+
+        {/* Éxito */}
+        {successMessage && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {successMessage}
           </Alert>
         )}
 
@@ -141,7 +240,6 @@ export default function AuthView() {
               label="Usuario"
               variant="outlined"
               size="small"
-              required
               value={form.username}
               onChange={handleChange("username")}
             />
@@ -151,7 +249,6 @@ export default function AuthView() {
               variant="outlined"
               size="small"
               type="password"
-              required
               value={form.password}
               onChange={handleChange("password")}
             />

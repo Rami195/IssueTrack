@@ -34,6 +34,12 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+
 
 # -------- Tickets --------
 
@@ -61,11 +67,13 @@ class TicketUpdate(BaseModel):
 
 class TicketRead(TicketBase):
     id: int
+    owner_id: int                     
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
     class Config:
         orm_mode = True
+
 
 
 # -------- Projects (lo que ya tenías) --------
@@ -86,6 +94,7 @@ class ProjectUpdate(BaseModel):
 
 class ProjectRead(ProjectBase):
     id: int
+    owner_id: int                    
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

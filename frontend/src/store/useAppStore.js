@@ -16,7 +16,7 @@ const useAppStore = create((set, get) => ({
   tickets: [],
   loading: false,
   error: null,
-
+  clearError: () => set({ error: null }),
   // búsqueda global (dashboard, projects, tickets)
   searchQuery: "",
   setSearchQuery: (q) => set({ searchQuery: q }),
@@ -30,7 +30,6 @@ const useAppStore = create((set, get) => ({
       get()
         .fetchMe()
         .then(() => {
-          // cargamos datos iniciales
           return Promise.all([get().fetchProjects(), get().fetchTickets()]);
         })
         .catch(() => {
@@ -42,8 +41,8 @@ const useAppStore = create((set, get) => ({
 
   // --------- Auth actions ---------
 
+  // REGISTRO DE USUARIO
   register: async (payload) => {
-    // payload: { username, password, full_name?, email? }
     set({ authLoading: true, error: null });
     try {
       const res = await fetch(`${API_URL}/users`, {
@@ -52,24 +51,29 @@ const useAppStore = create((set, get) => ({
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Error al registrarse");
+        // guardamos el JSON del backend para que AuthView pueda leer detail
+        set({ error: data || { detail: "Error al registrarse" } });
+        throw data;
       }
 
-      // login automático
-      await get().login({
-        username: payload.username,
-        password: payload.password,
-      });
+      // registro ok, no hacemos login automático
+      set({ error: null });
+      return data;
     } catch (err) {
-      set({ error: err.message || "Error en registro" });
+      // si por alguna razón no se seteo error arriba, lo guardamos acá
+      if (!get().error) {
+        set({ error: err });
+      }
       throw err;
     } finally {
       set({ authLoading: false });
     }
   },
 
+  // LOGIN
   login: async ({ username, password }) => {
     set({ authLoading: true, error: null });
     try {
@@ -83,21 +87,23 @@ const useAppStore = create((set, get) => ({
         body: formData,
       });
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Credenciales inválidas");
+        set({ error: data || { detail: "Error al iniciar sesión" } });
+        throw data;
       }
 
-      const data = await res.json(); // { access_token, token_type }
       const token = data.access_token;
-
       localStorage.setItem("ih_token", token);
-      set({ token });
+      set({ token, error: null });
 
       await get().fetchMe();
       await Promise.all([get().fetchProjects(), get().fetchTickets()]);
     } catch (err) {
-      set({ error: err.message || "Error al iniciar sesión" });
+      if (!get().error) {
+        set({ error: err });
+      }
       throw err;
     } finally {
       set({ authLoading: false });
@@ -130,6 +136,46 @@ const useAppStore = create((set, get) => ({
       projects: [],
       tickets: [],
     });
+  },
+
+  updateUser: async (data) => {
+    const { token, user } = get();
+    if (!token) throw new Error("No autenticado");
+
+    const res = await fetch(`${API_URL}/users/update`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    const json = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      set({ error: json || { detail: "Error al actualizar usuario" } });
+      throw json;
+    }
+
+    const updatedUser = {
+      ...user,
+      ...(data.username ? { username: data.username } : {}),
+      ...(data.email ? { email: data.email } : {}),
+      ...(data.full_name ? { full_name: data.full_name } : {}),
+    };
+
+    set({
+      user: updatedUser,
+      userName:
+        updatedUser.full_name ||
+        updatedUser.username ||
+        user.full_name ||
+        user.username,
+      error: null,
+    });
+
+    return json;
   },
 
   // --------- Projects ---------

@@ -4,12 +4,18 @@ import {
   List,
   ListItem,
   ListItemText,
+  Button, Divider
 } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import PeopleIcon from "@mui/icons-material/People";
+import useAppStore from "../../store/useAppStore";
+import SettingsIcon from "@mui/icons-material/Settings";
+
 
 export default function Sidebar({ currentView, onChangeView, onItemClick }) {
+  const { logout } = useAppStore();
+
   const handleChange = (view) => {
     onChangeView(view);
     if (onItemClick) onItemClick(); // para cerrar el Drawer en mobile
@@ -112,9 +118,41 @@ export default function Sidebar({ currentView, onChangeView, onItemClick }) {
           />
           <ListItemText primary="Proyectos" />
         </ListItem>
+        <ListItem
+          button
+          onClick={() => handleChange("config")}
+          selected={currentView === "config"}
+          sx={{
+            borderRadius: 2,
+            mb: 0.5,
+            cursor: "pointer",
+          }}
+        >
+          <SettingsIcon
+            fontSize="small"
+            sx={{
+              mr: 1,
+              color: currentView === "account" ? "primary.main" : "grey.400",
+            }}
+          />
+          <ListItemText primary="Configuración" />
+        </ListItem>
+
       </List>
 
       <Box sx={{ flexGrow: 1 }} />
+      <Divider sx={{ my: 2 }} />
+
+      <Button
+        fontSize="small"
+        variant="contained"
+        color="error"
+        fullWidth
+        onClick={() => logout()}
+      >
+        Cerrar sesión
+      </Button>
+
     </Box>
   );
 }
