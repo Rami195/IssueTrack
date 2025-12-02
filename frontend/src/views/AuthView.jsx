@@ -13,7 +13,7 @@ export default function AuthView() {
 
   const handleChange = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
-  // 🔐 Normalizamos el error del backend SIEMPRE a string
+  // Normalizamos el error del backend SIEMPRE a string
   const backendErrorMessage =
     typeof error === "string"
       ? error

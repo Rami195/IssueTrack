@@ -28,9 +28,7 @@ const useAppStore = create((set, get) => ({
     const token = localStorage.getItem("ih_token");
     if (token) {
       set({ token });
-      get()
-        .fetchMe()
-        .then(() => {
+      get().fetchMe().then(() => {
           return Promise.all([get().fetchProjects(), get().fetchTickets()]);
         })
         .catch(() => {

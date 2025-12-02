@@ -19,17 +19,17 @@ export default function ProjectsView() {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
 
-  // confirmación de borrado (MUI Dialog)
+  
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, name: "" });
 
-  // filtro (placeholder)
+
   const [filterType, setFilterType] = useState("all");
 
   // orden
   const [sortField, setSortField] = useState("id"); // id | name | created_at | updated_at
   const [sortDirection, setSortDirection] = useState("asc");
 
-  // 🔔 Snackbar / Alert MUI
+ 
   const [alertInfo, setAlertInfo] = useState({
     open: false,
     message: "",
@@ -108,7 +108,7 @@ export default function ProjectsView() {
     }
   };
 
-  // ------------ Eliminar proyecto (con Dialog MUI) ------------
+  // ------------ Eliminar proyecto -----------
   const openDeleteDialog = (project) => {
     setConfirmDelete({ open: true, id: project.id, name: project.name || "" });
   };
@@ -159,7 +159,7 @@ export default function ProjectsView() {
       }
 
       if (filterType !== "all") {
-        // placeholder para futuros filtros
+       
         return true;
       }
 
@@ -194,19 +194,21 @@ export default function ProjectsView() {
     return result;
   }, [safeProjects, safeSearch, filterType, sortField, sortDirection]);
 
-  // ================= RENDER =================
+
   return (
     <>
       <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>Proyectos</Typography>
 
-      {/* Formulario de creación */}
+    
       <Box component="form" onSubmit={handleCreate} sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, flexWrap: "wrap", gap: 2, mb: 3, alignItems: { xs: "stretch", sm: "center" } }}>
         <TextField label="Nombre" size="small" value={name} onChange={(e) => setName(e.target.value)} sx={{ minWidth: { xs: "100%", sm: 220 }, flex: 1 }} />
         <TextField label="Descripción" size="small" value={description} onChange={(e) => setDescription(e.target.value)} sx={{ minWidth: { xs: "100%", sm: 260 }, flex: 2 }} />
-        <Button variant="contained" type="submit" sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}>Agregar proyecto</Button>
+        <Button variant="contained" type="submit" sx={{ alignSelf: { xs: "stretch", sm: "auto" } }}>
+          Agregar proyecto
+        </Button>
       </Box>
 
-      {/* Barra de filtros */}
+     
       <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, flexWrap: "wrap", gap: 2, mb: 2, alignItems: { xs: "stretch", sm: "center" } }}>
         <TextField select label="Filtro" size="small" value={filterType} onChange={(e) => setFilterType(e.target.value)} sx={{ minWidth: { xs: "100%", sm: 180 }, maxWidth: 260 }}>
           <MenuItem value="all">Todos los proyectos</MenuItem>
@@ -321,7 +323,7 @@ export default function ProjectsView() {
         </DialogActions>
       </Dialog>
 
-      {/* 🔔 Snackbar global del componente */}
+     
       <Snackbar open={alertInfo.open} autoHideDuration={4000} onClose={handleCloseAlert} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
         <Alert onClose={handleCloseAlert} severity={alertInfo.severity} variant="filled" sx={{ width: "100%" }}>
           {alertInfo.message}

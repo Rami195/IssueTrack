@@ -31,7 +31,7 @@ export default function TicketsView() {
   const [sortField, setSortField] = useState("id");
   const [sortDirection, setSortDirection] = useState("desc");
 
-  // 🔔 Snackbar / Alert MUI
+  // Snackbar / Alert MUI
   const [alertInfo, setAlertInfo] = useState({
     open: false,
     message: "",
@@ -47,7 +47,7 @@ export default function TicketsView() {
     setAlertInfo((prev) => ({ ...prev, open: false }));
   };
 
-  // 🔥 Diálogo de confirmación de borrado
+  // Diálogo de confirmación de borrado
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState(null);
 
@@ -409,7 +409,7 @@ export default function TicketsView() {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
+   
       <Snackbar open={alertInfo.open} autoHideDuration={4000} onClose={handleCloseAlert} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
         <Alert onClose={handleCloseAlert} severity={alertInfo.severity} variant="filled" sx={{ width: "100%" }}>
           {alertInfo.message}
