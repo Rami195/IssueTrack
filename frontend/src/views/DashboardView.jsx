@@ -11,6 +11,7 @@ export default function DashboardView() {
     error,
     searchQuery,
     setView,
+    totalProjects
   } = useAppStore();
   const [projectsPage, setProjectsPage] = useState(0);
   const [ticketsPage, setTicketsPage] = useState(0);
@@ -25,7 +26,7 @@ export default function DashboardView() {
       const name = (p.name || "").toLowerCase();
       const desc = (p.description || "").toLowerCase();
       return name.includes(q) || desc.includes(q);
-    })
+    }) 
     : safeProjects;
 
   const filteredTickets = q
@@ -36,7 +37,7 @@ export default function DashboardView() {
     })
     : safeTickets;
 
-  const totalProjects = safeProjects.length;
+
   const totalTickets = safeTickets.length;
   const openTickets = safeTickets.filter(
     (t) =>

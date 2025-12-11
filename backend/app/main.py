@@ -1,10 +1,12 @@
 # app/main.py
 from typing import List
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status,Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+from typing import Optional
 
 from . import models, schemas
 from .database import Base, engine, get_db
@@ -203,17 +205,38 @@ def create_project(
     return db_project
 
 
-@app.get("/projects", response_model=List[schemas.ProjectRead])
+@app.get("/projects", response_model=schemas.ProjectListResponse)
 def list_projects(
+    page: int = Query(0, ge=0),
+    limit: int = Query(5, ge=1, le=100),
+    sort_field: str = Query("id"),
+    sort_direction: str = Query("asc"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    return (
-        db.query(models.Project)
-        .filter(models.Project.owner_id == current_user.id)
+    query = db.query(models.Project).filter(
+        models.Project.owner_id == current_user.id
+    )
+
+    # orden
+    if sort_field == "name":
+        order_col = models.Project.name
+    else:
+        order_col = models.Project.id
+
+    if sort_direction == "desc":
+        order_col = order_col.desc()
+
+    total = query.count()
+
+    projects = (
+        query.order_by(order_col)
+        .offset(page * limit)
+        .limit(limit)
         .all()
     )
 
+    return {"items": projects, "total": total}
 
 @app.get("/projects/{project_id}", response_model=schemas.ProjectWithTickets)
 def get_project(
@@ -328,17 +351,50 @@ def create_ticket(
     return db_ticket
 
 
-@app.get("/tickets", response_model=List[schemas.TicketRead])
+@app.get("/tickets", response_model=schemas.PaginatedTicketResponse)
 def list_tickets(
+    page: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    search: str = Query("", alias="search"),
+    sort_field: str = Query("id"),
+    sort_direction: str = Query("desc"),
+    project_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    return (
-        db.query(models.Ticket)
-        .filter(models.Ticket.owner_id == current_user.id)
-        .all()
+    query = db.query(models.Ticket).filter(
+        models.Ticket.owner_id == current_user.id
     )
 
+    if project_id is not None:
+        query = query.filter(models.Ticket.project_id == project_id)
+
+    if search:
+        s = f"%{search}%"
+        query = query.filter(
+            (models.Ticket.title.ilike(s)) |
+            (models.Ticket.description.ilike(s))
+        )
+
+    sort_map = {
+        "id": models.Ticket.id,
+        "title": models.Ticket.title,
+        "status": models.Ticket.status,
+        "priority": models.Ticket.priority,
+        "created_at": models.Ticket.created_at,
+        "updated_at": models.Ticket.updated_at,
+    }
+    sort_col = sort_map.get(sort_field, models.Ticket.id)
+    if sort_direction.lower() == "desc":
+        sort_col = sort_col.desc()
+
+    query = query.order_by(sort_col)
+
+    total = query.count()
+    skip = page * limit
+    tickets = query.offset(skip).limit(limit).all()
+
+    return {"items": tickets, "total": total}
 
 @app.get("/tickets/{ticket_id}", response_model=schemas.TicketRead)
 def get_ticket(

@@ -1,12 +1,14 @@
-import { useState, useMemo, useCallback } from "react";
-import { Box, Button, Card, CardContent, MenuItem, Table, TableHead, TableRow, TableCell, TableBody, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TableSortLabel, TableContainer, Chip, Snackbar, Alert } from "@mui/material";
+import { useState, useCallback, useEffect } from "react";
+import { Box, Button, Card, CardContent, MenuItem, Table, TableHead, TableRow, TableCell, TableBody, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, TableSortLabel, TableContainer, Chip, Snackbar, Alert, TablePagination } from "@mui/material";
 import useAppStore from "../store/useAppStore";
 
 export default function TicketsView() {
-  const { tickets, projects, createTicket, updateTicket, deleteTicket, searchQuery } = useAppStore();
+  const { tickets, totalTickets, projects, fetchTickets, createTicket, updateTicket, deleteTicket, searchQuery } = useAppStore();
 
   const safeTickets = Array.isArray(tickets) ? tickets : [];
   const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeSearch =
+    typeof searchQuery === "string" ? searchQuery : String(searchQuery || "");
 
   // creación
   const [title, setTitle] = useState("");
@@ -26,6 +28,14 @@ export default function TicketsView() {
 
   // filtro
   const [filterProject, setFilterProject] = useState("all");
+
+  //Paginacion 
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 10;
+
+  useEffect(() => {
+    setPage(0);
+  }, [safeSearch, filterProject])
 
   // orden
   const [sortField, setSortField] = useState("id");
@@ -83,6 +93,36 @@ export default function TicketsView() {
 
   const projectNameById = useCallback((id) => safeProjects.find((p) => p.id === id)?.name || `#${id}`, [safeProjects]);
 
+  // fecth tickets
+  useEffect(() => {
+    const trimmedSearch = safeSearch.trim();
+
+    fetchTickets({
+      page,
+      limit: rowsPerPage,
+      search: trimmedSearch,
+      sortField,
+      sortDirection,
+      filterProject,
+      fetchTickets,
+    });
+  }, [page, safeSearch, sortField, sortDirection, filterProject, fetchTickets]);
+
+  const refetchPage = () => {
+    const trimmedSearch = safeSearch.trim();
+    fetchTickets({
+      page,
+      limit: rowsPerPage,
+      search: trimmedSearch,
+      sortField,
+      sortDirection,
+      projectId: filterProject !== "all" ? filterProject : undefined,
+    })
+  }
+
+
+
+  // Crear ticket
   const handleCreate = async (e) => {
     e.preventDefault();
 
@@ -107,12 +147,15 @@ export default function TicketsView() {
       setPriority("medium");
       setStatus("open");
       setProjectId("");
+      setPage(0);
+      refetchPage();
     } catch (err) {
       console.error("Error al crear ticket:", err);
       showAlert(err?.message || "Error al crear ticket", "error");
     }
   };
 
+  //editar ticket
   const handleOpenEdit = (ticket) => {
     setEditTicketId(ticket.id);
     setEditTitle(ticket.title);
@@ -151,6 +194,7 @@ export default function TicketsView() {
       await updateTicket(editTicketId, payload);
       showAlert("Ticket actualizado correctamente.", "success");
       handleCloseEdit();
+      refetchPage();
     } catch (err) {
       console.error("Error al actualizar ticket:", err);
       showAlert(err?.message || "Error al actualizar ticket", "error");
@@ -166,64 +210,7 @@ export default function TicketsView() {
     }
   };
 
-  const displayTickets = useMemo(() => {
-    const q = (searchQuery ?? "").trim().toLowerCase();
 
-    const priorityWeight = (p) => {
-      if (p === "high") return 3;
-      if (p === "medium") return 2;
-      if (p === "low") return 1;
-      return 0;
-    };
-
-    let result = safeTickets.filter((t) => {
-      if (q) {
-        const projectName = projectNameById(t.project_id).toLowerCase();
-        const matches = (t.title || "").toLowerCase().includes(q) || (t.description || "").toLowerCase().includes(q) || projectName.includes(q);
-        if (!matches) return false;
-      }
-
-      if (filterProject !== "all" && String(t.project_id) !== String(filterProject)) {
-        return false;
-      }
-
-      return true;
-    });
-
-    const dir = sortDirection === "asc" ? 1 : -1;
-
-    result = result.sort((a, b) => {
-      let va, vb;
-
-      if (sortField === "title") {
-        va = (a.title || "").toLowerCase();
-        vb = (b.title || "").toLowerCase();
-        return va.localeCompare(vb) * dir;
-      }
-
-      if (sortField === "project") {
-        va = projectNameById(a.project_id).toLowerCase();
-        vb = projectNameById(b.project_id).toLowerCase();
-        return va.localeCompare(vb) * dir;
-      }
-
-      if (sortField === "priority") {
-        va = priorityWeight(a.priority);
-        vb = priorityWeight(b.priority);
-        return (va - vb) * dir;
-      }
-
-      if (sortField === "status") {
-        va = (a.status || "").toLowerCase();
-        vb = (b.status || "").toLowerCase();
-        return va.localeCompare(vb) * dir;
-      }
-
-      return (a.id - b.id) * dir;
-    });
-
-    return result;
-  }, [safeTickets, searchQuery, filterProject, sortField, sortDirection, projectNameById]);
 
   return (
     <>
@@ -312,7 +299,7 @@ export default function TicketsView() {
               </TableHead>
 
               <TableBody>
-                {displayTickets.map((t) => (
+                {safeTickets.map((t) => (
                   <TableRow key={t.id} hover onClick={() => handleOpenEdit(t)} sx={{ cursor: "pointer" }}>
                     <TableCell>{t.id}</TableCell>
                     <TableCell>{t.title}</TableCell>
@@ -352,7 +339,7 @@ export default function TicketsView() {
                   </TableRow>
                 ))}
 
-                {displayTickets.length === 0 && (
+                {safeTickets.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6}>
                       <Typography variant="body2" sx={{ color: "grey.400" }}>
@@ -363,6 +350,15 @@ export default function TicketsView() {
                 )}
               </TableBody>
             </Table>
+
+            <TablePagination
+              component="div"
+              count={totalTickets}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              rowsPerPageOptions={[rowsPerPage]}
+            />
           </TableContainer>
         </CardContent>
       </Card>
@@ -409,7 +405,7 @@ export default function TicketsView() {
         </DialogActions>
       </Dialog>
 
-   
+
       <Snackbar open={alertInfo.open} autoHideDuration={4000} onClose={handleCloseAlert} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
         <Alert onClose={handleCloseAlert} severity={alertInfo.severity} variant="filled" sx={{ width: "100%" }}>
           {alertInfo.message}

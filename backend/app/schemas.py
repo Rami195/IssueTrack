@@ -74,7 +74,9 @@ class TicketRead(TicketBase):
     class Config:
         orm_mode = True
 
-
+class PaginatedTicketResponse(BaseModel):
+    items: List[TicketRead]
+    total: int
 
 # -------- Projects (lo que ya tenías) --------
 
@@ -104,3 +106,7 @@ class ProjectRead(ProjectBase):
 
 class ProjectWithTickets(ProjectRead):
     tickets: List[TicketRead] = []
+
+class ProjectListResponse(BaseModel):
+    items: List[ProjectRead]
+    total: int

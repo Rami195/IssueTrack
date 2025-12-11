@@ -5,11 +5,11 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 # Clave y algoritmo para JWT
-SECRET_KEY = "super-secret-key-change-me"  # cámbiala en prod :)
+SECRET_KEY = "super-secret-key-change-me"  
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# Usamos pbkdf2_sha256 en lugar de bcrypt
+# Usamos pbkdf2_sha256 
 pwd_context = CryptContext(
     schemes=["pbkdf2_sha256"],
     deprecated="auto",
@@ -27,8 +27,7 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(
-    data: dict, expires_delta: Optional[timedelta] = None
-) -> str:
+    data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
     Crea un JWT con el payload que se pasa en `data`.
     Se espera que `data` incluya al menos {"sub": username}.

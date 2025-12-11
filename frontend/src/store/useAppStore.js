@@ -13,11 +13,13 @@ const useAppStore = create((set, get) => ({
   // ---- App ----
   currentView: "dashboard",
   projects: [],
+  totalProjects: 0,
+  totalTickets: 0,
   tickets: [],
   loading: false,
   error: null,
   clearError: () => set({ error: null }),
-  
+
   // búsqueda global (dashboard, projects, tickets)
   searchQuery: "",
   setSearchQuery: (q) => set({ searchQuery: q }),
@@ -29,8 +31,8 @@ const useAppStore = create((set, get) => ({
     if (token) {
       set({ token });
       get().fetchMe().then(() => {
-          return Promise.all([get().fetchProjects(), get().fetchTickets()]);
-        })
+        return Promise.all([get().fetchProjects(), get().fetchTickets()]);
+      })
         .catch(() => {
           localStorage.removeItem("ih_token");
           set({ token: null, user: null, userName: "" });
@@ -179,15 +181,39 @@ const useAppStore = create((set, get) => ({
 
   // --------- Projects ---------
 
-  fetchProjects: async () => {
+  fetchProjects: async (params = {}) => {
     const { token } = get();
     if (!token) return;
 
+    const {
+      page = 0,
+      limit = 10,
+      search = "",
+      sortField = "id",
+      sortDirection = "asc",
+    } = params;
+
     set({ loading: true, error: null });
+
     try {
-      const res = await fetch(`${API_URL}/projects`, {
+      const url = new URL(`${API_URL}/projects`);
+
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("limit", String(limit));
+      url.searchParams.set("sort_field", sortField);
+      url.searchParams.set("sort_direction", sortDirection);
+
+
+
+      // sólo mandamos search si tiene algo
+      if (search && search.trim() !== "") {
+        url.searchParams.set("search", search.trim());
+      }
+
+      const res = await fetch(url.toString(), {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       if (!res.ok) {
         if (res.status === 401) {
           get().logout();
@@ -196,8 +222,13 @@ const useAppStore = create((set, get) => ({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.detail || "Error al obtener proyectos");
       }
+
       const data = await res.json();
-      set({ projects: data });
+
+      set({
+        projects: data.items || [],
+        totalProjects: data.total ?? 0,
+      });
     } catch (err) {
       set({ error: err.message || "Error al cargar proyectos" });
     } finally {
@@ -205,8 +236,9 @@ const useAppStore = create((set, get) => ({
     }
   },
 
+
   createProject: async (payload) => {
-    const { token, projects } = get();
+    const { token} = get();
     if (!token) throw new Error("No autenticado");
 
     try {
@@ -225,7 +257,17 @@ const useAppStore = create((set, get) => ({
       }
 
       const created = await res.json();
-      set({ projects: [...projects, created] });
+
+      // después de crear, recargo la página actual desde el backend
+      const { searchQuery } = get();
+      await get().fetchProjects({
+        page: 0,                // opcional: volver a la primera página
+        limit: 5,
+        search: searchQuery ?? "",
+        sortField: "id",
+        sortDirection: "asc",
+      });
+
       return created;
     } catch (err) {
       set({ error: err.message || "Error al crear proyecto" });
@@ -291,31 +333,75 @@ const useAppStore = create((set, get) => ({
 
   // --------- Tickets ---------
 
-  fetchTickets: async () => {
-    const { token } = get();
-    if (!token) return;
+  fetchTickets: async (params = {}) => {
+  const { token } = get();
+  if (!token) return;
 
-    set({ loading: true, error: null });
-    try {
-      const res = await fetch(`${API_URL}/tickets`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        if (res.status === 401) {
-          get().logout();
-          throw new Error("No autorizado");
-        }
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Error al obtener tickets");
-      }
-      const data = await res.json();
-      set({ tickets: data });
-    } catch (err) {
-      set({ error: err.message || "Error al cargar tickets" });
-    } finally {
-      set({ loading: false });
+  const {
+    page = 0,
+    limit = 10,
+    search = "",
+    sortField = "id",
+    sortDirection = "asc",
+    status = "",    
+    priority = "",   
+    projectId = "",   
+  } = params;
+
+  set({ loading: true, error: null });
+
+  try {
+    const url = new URL(`${API_URL}/tickets`);
+
+    // paginación y orden
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("limit", String(limit));
+    url.searchParams.set("sort_field", sortField);
+    url.searchParams.set("sort_direction", sortDirection);
+
+    // filtros opcionales
+    if (search && search.trim() !== "") {
+      url.searchParams.set("search", search.trim());
     }
-  },
+
+    if (status && status !== "all") {
+      url.searchParams.set("status", status);
+    }
+
+    if (priority && priority !== "all") {
+      url.searchParams.set("priority", priority);
+    }
+
+    if (projectId) {
+      url.searchParams.set("project_id", String(projectId));
+    }
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        get().logout();
+        throw new Error("No autorizado");
+      }
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || "Error al obtener tickets");
+    }
+
+    const data = await res.json();
+
+    set({
+      tickets: data.items || [],
+      totalTickets: data.total ?? 0,
+    });
+  } catch (err) {
+    set({ error: err.message || "Error al cargar tickets" });
+  } finally {
+    set({ loading: false });
+  }
+},
+
 
   createTicket: async (payload) => {
     const { token, tickets } = get();
