@@ -1,17 +1,15 @@
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 
 from app import models, schemas
+from app.exceptions import NotFoundError, BadRequestError
 from app.repos import tickets_repo, projects_repo
 
 
 def _ensure_project_belongs_to_user(db: Session, owner_id: int, project_id: int) -> None:
-    if not projects_repo.get_by_id_and_owner(db, project_id, owner_id):
-        raise HTTPException(
-            status_code=400,
-            detail="El proyecto no existe o no pertenece al usuario actual.",
-        )
+    project = projects_repo.get_by_id_and_owner(db, project_id, owner_id)
+    if not project:
+        raise BadRequestError("El proyecto no existe o no pertenece al usuario actual.")
 
 
 def create_ticket(db: Session, owner_id: int, ticket_in: schemas.TicketCreate) -> models.Ticket:
@@ -42,7 +40,7 @@ def list_tickets(
 
     total = tickets_repo.count(q)
 
-    # sort whitelist (igual que en tu endpoint)
+    # sort whitelist
     sort_map = {
         "id": models.Ticket.id,
         "title": models.Ticket.title,
@@ -55,7 +53,7 @@ def list_tickets(
 
     direction = sort_direction.lower()
     if direction not in ("asc", "desc"):
-        raise HTTPException(status_code=400, detail="sort_direction inválido (asc/desc).")
+        raise BadRequestError("sort_direction inválido (asc/desc).")
     if direction == "desc":
         sort_col = sort_col.desc()
 
@@ -72,7 +70,7 @@ def list_tickets(
 def get_ticket(db: Session, owner_id: int, ticket_id: int) -> models.Ticket:
     ticket = tickets_repo.get_by_id_and_owner(db, ticket_id, owner_id)
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket no encontrado.")
+        raise NotFoundError("Ticket no encontrado.")
     return ticket
 
 

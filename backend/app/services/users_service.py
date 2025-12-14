@@ -1,23 +1,18 @@
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app import schemas, models
 from app.auth import get_password_hash
+from app.exceptions import BadRequestError
 from app.repos import users_repo
 
 
 def create_user(db: Session, user_in: schemas.UserCreate) -> models.User:
     # Validación de duplicados
     if user_in.username and users_repo.exists_username(db, user_in.username):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nombre de usuario o correo ya registrados.",
-        )
+        raise BadRequestError("Nombre de usuario o correo ya registrados.")
+
     if user_in.email and users_repo.exists_email(db, user_in.email):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nombre de usuario o correo ya registrados.",
-        )
+        raise BadRequestError("Nombre de usuario o correo ya registrados.")
 
     hashed = get_password_hash(user_in.password)
     return users_repo.create(
@@ -33,13 +28,13 @@ def update_user(db: Session, current_user: models.User, data: schemas.UserUpdate
     # username
     if data.username:
         if users_repo.exists_username(db, data.username, exclude_user_id=current_user.id):
-            raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso.")
+            raise BadRequestError("El nombre de usuario ya está en uso.")
         current_user.username = data.username
 
     # email
     if data.email:
         if users_repo.exists_email(db, data.email, exclude_user_id=current_user.id):
-            raise HTTPException(status_code=400, detail="El correo electrónico ya está en uso.")
+            raise BadRequestError("El correo electrónico ya está en uso.")
         current_user.email = data.email
 
     # password

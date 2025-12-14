@@ -1,7 +1,7 @@
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app import models, schemas
+from app.exceptions import NotFoundError, BadRequestError
 from app.repos import projects_repo
 
 
@@ -45,7 +45,7 @@ def list_projects(
 def get_project(db: Session, owner_id: int, project_id: int) -> models.Project:
     project = projects_repo.get_by_id_and_owner(db, project_id, owner_id)
     if not project:
-        raise HTTPException(status_code=404, detail="Proyecto no encontrado.")
+        raise NotFoundError("Proyecto no encontrado.")
     return project
 
 
@@ -70,10 +70,7 @@ def delete_project(db: Session, owner_id: int, project_id: int) -> models.Projec
 
     tickets_count = projects_repo.count_tickets_in_project(db, project_id)
     if tickets_count > 0:
-        raise HTTPException(
-            status_code=400,
-            detail="No se puede eliminar el proyecto porque tiene tickets asociados.",
-        )
+        raise BadRequestError("No se puede eliminar el proyecto porque tiene tickets asociados.")
 
     projects_repo.delete(db, project)
     return project
