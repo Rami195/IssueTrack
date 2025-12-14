@@ -21,6 +21,7 @@ services:
     environment:
       # Más adelante usaremos esto en el código
       DATABASE_URL: postgresql://issuehub_user:issuehub_pass@db:5432/issuehub
+      SECRET_KEY: "Clave_prueba_development_1234567890"
     ports:
       - "8000:8000"
 

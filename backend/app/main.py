@@ -1,12 +1,18 @@
 # app/main.py
 from typing import List
-
-from fastapi import FastAPI, Depends, HTTPException, status,Query
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.requests import Request
+from starlette.responses import Response
+from fastapi import FastAPI, Depends, HTTPException, status,Query, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from fastapi.responses import JSONResponse
 from typing import Optional
+
 
 from . import models, schemas
 from .database import Base, engine, get_db
@@ -15,11 +21,17 @@ from .auth import (
     verify_password,
     create_access_token,
     decode_access_token,
+    create_refresh_token,
+    decode_refresh_token
 )
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="IssueHub API", version="0.4.0")
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 origins = [
     "http://localhost:3000",
@@ -109,7 +121,10 @@ def create_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @app.post("/token", response_model=schemas.Token)
+@limiter.limit("3/minute")
 def login_for_access_token(
+    request: Request,
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
@@ -122,8 +137,68 @@ def login_for_access_token(
         )
 
     access_token = create_access_token({"sub": user.username})
+    refresh_token = create_refresh_token({"sub": user.username})
+
+    response.set_cookie(
+        key="ih_refresh",
+        value=refresh_token,
+        httponly=True,
+        secure=False,       # ✅ LOCAL: False | PROD (HTTPS): True
+        samesite="lax",     # "lax" suele ser lo mejor para empezar
+        path="/",           # o "/token/refresh" si querés más restrictivo
+        max_age=60 * 60 * 24 * 7,
+    )
+
     return {"access_token": access_token, "token_type": "bearer"}
 
+
+@app.post("/token/refresh", response_model=schemas.Token)
+def refresh_access_token(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    refresh_token = request.cookies.get("ih_refresh")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="No hay refresh token.")
+
+    username = decode_refresh_token(refresh_token) 
+    if username is None:
+        raise HTTPException(status_code=401, detail="Refresh token inválido.")
+
+    user = get_user_by_username(db, username)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Usuario no encontrado.")
+
+    new_access = create_access_token({"sub": user.username})
+    new_refresh = create_refresh_token({"sub": user.username})  
+
+    response.set_cookie(
+        key="ih_refresh",
+        value=new_refresh,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        path="/",
+        max_age=60 * 60 * 24 * 7,
+    )
+
+    return {"access_token": new_access, "token_type": "bearer"}
+
+@app.post("/logout")
+def logout(response: Response):
+    response.delete_cookie("ih_refresh", path="/")
+    return {"message": "ok"}
+
+@app.exception_handler(RateLimitExceeded)
+def rate_limit_handler(request, exc):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": "Superaste el número de intentos permitidos. Esperá un minuto y volvé a intentar."
+        },
+        headers={"Retry-After": "60"},
+    )
 
 @app.get("/users/me", response_model=schemas.UserRead)
 def read_users_me(current_user: models.User = Depends(get_current_user)):
@@ -207,7 +282,7 @@ def create_project(
 
 @app.get("/projects", response_model=schemas.ProjectListResponse)
 def list_projects(
-    page: int = Query(0, ge=0),
+    page: int = Query(0, ge=0, le=10000) ,
     limit: int = Query(5, ge=1, le=100),
     sort_field: str = Query("id"),
     sort_direction: str = Query("asc"),
@@ -227,7 +302,7 @@ def list_projects(
     if sort_direction == "desc":
         order_col = order_col.desc()
 
-    total = query.count()
+    total = query.with_entities(func.count(models.Project.id)).scalar()
 
     projects = (
         query.order_by(order_col)
@@ -362,20 +437,38 @@ def list_tickets(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    query = db.query(models.Ticket).filter(
+    # 1) Query base: SIEMPRE limitada al usuario actual (seguridad)
+    base_query = db.query(models.Ticket).filter(
         models.Ticket.owner_id == current_user.id
     )
 
+    # 2) Filtro por proyecto (si viene) + validación (seguridad)
     if project_id is not None:
-        query = query.filter(models.Ticket.project_id == project_id)
+        project = (
+            db.query(models.Project)
+            .filter(
+                models.Project.id == project_id,
+                models.Project.owner_id == current_user.id,
+            )
+            .first()
+        )
+        if not project:
+            raise HTTPException(status_code=400, detail="Proyecto inválido.")
 
+        base_query = base_query.filter(models.Ticket.project_id == project_id)
+
+    # 3) Search (si viene)
     if search:
         s = f"%{search}%"
-        query = query.filter(
+        base_query = base_query.filter(
             (models.Ticket.title.ilike(s)) |
             (models.Ticket.description.ilike(s))
         )
 
+    # 4) Total SIN order_by (para que Postgres no tire error)
+    total = base_query.with_entities(func.count(models.Ticket.id)).scalar()
+
+    # 5) Ordenamiento seguro (whitelist)
     sort_map = {
         "id": models.Ticket.id,
         "title": models.Ticket.title,
@@ -385,16 +478,29 @@ def list_tickets(
         "updated_at": models.Ticket.updated_at,
     }
     sort_col = sort_map.get(sort_field, models.Ticket.id)
-    if sort_direction.lower() == "desc":
+
+    # 6) Validación direction
+    direction = sort_direction.lower()
+    if direction not in ("asc", "desc"):
+        raise HTTPException(status_code=400, detail="sort_direction inválido (asc/desc).")
+
+    if direction == "desc":
         sort_col = sort_col.desc()
 
-    query = query.order_by(sort_col)
-
-    total = query.count()
+    # 7) Paginación
     skip = page * limit
-    tickets = query.offset(skip).limit(limit).all()
+
+    # 8) Traer items ya ordenados y paginados
+    tickets = (
+        base_query
+        .order_by(sort_col)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
     return {"items": tickets, "total": total}
+
 
 @app.get("/tickets/{ticket_id}", response_model=schemas.TicketRead)
 def get_ticket(

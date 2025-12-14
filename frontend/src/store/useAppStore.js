@@ -20,6 +20,8 @@ const useAppStore = create((set, get) => ({
   error: null,
   clearError: () => set({ error: null }),
 
+  getToken: () => get().token || localStorage.getItem("ih_token"),
+
   // búsqueda global (dashboard, projects, tickets)
   searchQuery: "",
   setSearchQuery: (q) => set({ searchQuery: q }),
@@ -77,6 +79,7 @@ const useAppStore = create((set, get) => ({
   // LOGIN
   login: async ({ username, password }) => {
     set({ authLoading: true, error: null });
+
     try {
       const formData = new URLSearchParams();
       formData.append("username", username);
@@ -86,38 +89,97 @@ const useAppStore = create((set, get) => ({
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: formData,
+        credentials: "include",
       });
 
-      const data = await res.json().catch(() => null);
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        set({ error: data || { detail: "Error al iniciar sesión" } });
-        throw data;
+
+        if (res.status === 429) {
+          const message =
+            data.detail ||
+            "Demasiados intentos de inicio de sesión. Esperá un minuto e intentá de nuevo.";
+
+          set({ error: { detail: message } });
+          throw new Error(message);
+        }
+
+
+        const message = data.detail || "Usuario o contraseña incorrectos.";
+        set({ error: { detail: message } });
+        throw new Error(message);
       }
 
+
       const token = data.access_token;
-      localStorage.setItem("ih_token", token);
+
+
+
       set({ token, error: null });
 
       await get().fetchMe();
       await Promise.all([get().fetchProjects(), get().fetchTickets()]);
     } catch (err) {
+      // fallback (por si algo raro pasa)
       if (!get().error) {
-        set({ error: err });
+        set({
+          error: { detail: err.message || "Error inesperado al iniciar sesión." },
+        });
       }
       throw err;
     } finally {
       set({ authLoading: false });
     }
   },
+  refreshAccessToken: async () => {
+    const res = await fetch(`${API_URL}/token/refresh`, {
+      method: "POST",
+      credentials: "include", // ✅ manda cookie ih_refresh al backend
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      get().logout();
+      throw new Error(data.detail || "Sesión expirada. Iniciá sesión de nuevo.");
+    }
+
+    const newAccess = data.access_token;
+    localStorage.setItem("ih_token", newAccess);
+    set({ token: newAccess, error: null });
+
+    return newAccess;
+  },
+
+  authFetch: async (url, options = {}) => {
+    const token = get().getToken();
+
+    const doFetch = (t) =>
+      fetch(url, {
+        ...options,
+        credentials: "include",
+        headers: {
+          ...(options.headers || {}),
+          Authorization: `Bearer ${t}`,
+        },
+      });
+
+    // 1er intento
+    let res = await doFetch(token);
+
+    // Si token expiró -> refresh y reintentar 1 vez
+    if (res.status === 401) {
+      const newToken = await get().refreshAccessToken();
+      res = await doFetch(newToken);
+    }
+
+    return res;
+  },
 
   fetchMe: async () => {
-    const { token } = get();
-    if (!token) return;
 
-    const res = await fetch(`${API_URL}/users/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await get().authFetch(`${API_URL}/users/me`);
 
     if (!res.ok) throw new Error("No se pudo obtener el usuario actual");
 
@@ -128,14 +190,20 @@ const useAppStore = create((set, get) => ({
     });
   },
 
-  logout: () => {
+  logout: async () => {
     localStorage.removeItem("ih_token");
+    try {
+      await fetch(`${API_URL}/logout`, { method: "POST", credentials: "include" });
+    } catch (err) {
+      console.warn("Logout backend falló:", err);
+    }
     set({
       token: null,
       user: null,
       userName: "",
       projects: [],
       tickets: [],
+      refreshToken: null,
     });
   },
 
@@ -182,9 +250,6 @@ const useAppStore = create((set, get) => ({
   // --------- Projects ---------
 
   fetchProjects: async (params = {}) => {
-    const { token } = get();
-    if (!token) return;
-
     const {
       page = 0,
       limit = 10,
@@ -210,27 +275,20 @@ const useAppStore = create((set, get) => ({
         url.searchParams.set("search", search.trim());
       }
 
-      const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await get().authFetch(url.toString());
 
-      if (!res.ok) {
-        if (res.status === 401) {
-          get().logout();
-          throw new Error("No autorizado");
-        }
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Error al obtener proyectos");
-      }
-
-      const data = await res.json();
-
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Error al obtener proyectos");
       set({
         projects: data.items || [],
         totalProjects: data.total ?? 0,
+        error: null,
       });
+
+      return data;
     } catch (err) {
       set({ error: err.message || "Error al cargar proyectos" });
+      throw err;
     } finally {
       set({ loading: false });
     }
@@ -238,251 +296,213 @@ const useAppStore = create((set, get) => ({
 
 
   createProject: async (payload) => {
-    const { token} = get();
-    if (!token) throw new Error("No autenticado");
-
-    try {
-      const res = await fetch(`${API_URL}/projects`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Error al crear proyecto");
-      }
-
-      const created = await res.json();
-
-      // después de crear, recargo la página actual desde el backend
-      const { searchQuery } = get();
-      await get().fetchProjects({
-        page: 0,                // opcional: volver a la primera página
-        limit: 5,
-        search: searchQuery ?? "",
-        sortField: "id",
-        sortDirection: "asc",
-      });
-
-      return created;
-    } catch (err) {
-      set({ error: err.message || "Error al crear proyecto" });
-      throw err;
-    }
-  },
-
-  updateProject: async (id, payload) => {
-    const { token, projects } = get();
-    if (!token) throw new Error("No autenticado");
-
-    try {
-      const res = await fetch(`${API_URL}/projects/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Error al actualizar proyecto");
-      }
-
-      const updated = await res.json();
-      set({
-        projects: projects.map((p) => (p.id === id ? updated : p)),
-      });
-      return updated;
-    } catch (err) {
-      set({ error: err.message || "Error al actualizar proyecto" });
-      throw err;
-    }
-  },
-
-  deleteProject: async (id) => {
-    const { token, projects } = get();
-    if (!token) throw new Error("No autenticado");
-
-    try {
-      const res = await fetch(`${API_URL}/projects/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Error al eliminar proyecto");
-      }
-
-      set({
-        projects: projects.filter((p) => p.id !== id),
-      });
-    } catch (err) {
-      set({ error: err.message || "Error al eliminar proyecto" });
-      throw err;
-    }
-  },
-
-  // --------- Tickets ---------
-
-  fetchTickets: async (params = {}) => {
-  const { token } = get();
-  if (!token) return;
-
-  const {
-    page = 0,
-    limit = 10,
-    search = "",
-    sortField = "id",
-    sortDirection = "asc",
-    status = "",    
-    priority = "",   
-    projectId = "",   
-  } = params;
-
-  set({ loading: true, error: null });
-
   try {
-    const url = new URL(`${API_URL}/tickets`);
-
-    // paginación y orden
-    url.searchParams.set("page", String(page));
-    url.searchParams.set("limit", String(limit));
-    url.searchParams.set("sort_field", sortField);
-    url.searchParams.set("sort_direction", sortDirection);
-
-    // filtros opcionales
-    if (search && search.trim() !== "") {
-      url.searchParams.set("search", search.trim());
-    }
-
-    if (status && status !== "all") {
-      url.searchParams.set("status", status);
-    }
-
-    if (priority && priority !== "all") {
-      url.searchParams.set("priority", priority);
-    }
-
-    if (projectId) {
-      url.searchParams.set("project_id", String(projectId));
-    }
-
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}` },
+    const res = await get().authFetch(`${API_URL}/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
+
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      if (res.status === 401) {
-        get().logout();
-        throw new Error("No autorizado");
-      }
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.detail || "Error al obtener tickets");
+      throw new Error(data.detail || "Error al crear proyecto");
     }
 
-    const data = await res.json();
-
-    set({
-      tickets: data.items || [],
-      totalTickets: data.total ?? 0,
+    // Opción A (simple): recargar lista actual
+    const { searchQuery } = get();
+    await get().fetchProjects({
+      page: 0,
+      limit: 10,
+      search: searchQuery ?? "",
+      sortField: "id",
+      sortDirection: "asc",
     });
+
+    return data;
   } catch (err) {
-    set({ error: err.message || "Error al cargar tickets" });
-  } finally {
-    set({ loading: false });
+    set({ error: err?.message || "Error al crear proyecto" });
+    throw err;
   }
 },
 
 
-  createTicket: async (payload) => {
-    const { token, tickets } = get();
-    if (!token) throw new Error("No autenticado");
+ updateProject: async (id, payload) => {
+  try {
+    const res = await get().authFetch(`${API_URL}/projects/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.detail || "Error al actualizar proyecto");
+    }
+
+    // actualizar en memoria (optimista)
+    set({
+      projects: get().projects.map((p) => (p.id === id ? data : p)),
+      error: null,
+    });
+
+    return data;
+  } catch (err) {
+    set({ error: err?.message || "Error al actualizar proyecto" });
+    throw err;
+  }
+},
+
+  deleteProject: async (id) => {
     try {
-      const res = await fetch(`${API_URL}/tickets`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
+      const res = await get().authFetch(`${API_URL}/projects/${id}`, {
+        method: "DELETE",
       });
 
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) throw new Error(data.detail || "Error al eliminar proyecto");
+
+      set({ projects: get().projects.filter((p) => p.id !== id), error: null });
+    } catch (err) {
+      set({ error: err?.message || "Error al eliminar proyecto" });
+      throw err;
+    }
+  },
+
+
+  // --------- Tickets ---------
+
+  fetchTickets: async (params = {}) => {
+    const {
+      page = 0,
+      limit = 10,
+      search = "",
+      sortField = "id",
+      sortDirection = "asc",
+      status = "",
+      priority = "",
+      projectId = "",
+    } = params;
+
+    set({ loading: true, error: null });
+
+    try {
+      const url = new URL(`${API_URL}/tickets`);
+
+      // paginación y orden
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("limit", String(limit));
+      url.searchParams.set("sort_field", sortField);
+      url.searchParams.set("sort_direction", sortDirection);
+
+      // filtros opcionales
+      if (search && search.trim() !== "") {
+        url.searchParams.set("search", search.trim());
+      }
+
+      if (status && status !== "all") {
+        url.searchParams.set("status", status);
+      }
+
+      if (priority && priority !== "all") {
+        url.searchParams.set("priority", priority);
+      }
+
+      if (projectId) {
+        url.searchParams.set("project_id", String(projectId));
+      }
+
+
+      const res = await get().authFetch(url.toString());
+
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+
+        throw new Error(data.detail || "Error al obtener tickets");
+      }
+
+      set({
+        tickets: data.items || [],
+        totalTickets: data.total ?? 0,
+        error: null,
+      });
+
+      return data;
+    } catch (err) {
+      set({ error: err?.message || "Error al cargar tickets" });
+      throw err;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+
+
+  createTicket: async (payload) => {
+    try {
+      const res = await get().authFetch(`${API_URL}/tickets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
         throw new Error(data.detail || "Error al crear ticket");
       }
 
-      const created = await res.json();
-      set({ tickets: [...tickets, created] });
-      return created;
+      await get().fetchTickets({ page: 0, limit: 10, sortField: "id", sortDirection: "desc" });
+
+      return data;
     } catch (err) {
       set({ error: err.message || "Error al crear ticket" });
       throw err;
     }
   },
 
-  updateTicket: async (id, payload) => {
-    const { token, tickets } = get();
-    if (!token) throw new Error("No autenticado");
+ updateTicket: async (id, payload) => {
+  try {
+    const res = await get().authFetch(`${API_URL}/tickets/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-    try {
-      const res = await fetch(`${API_URL}/tickets/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+    const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Error al actualizar ticket");
-      }
-
-      const updated = await res.json();
-      set({
-        tickets: tickets.map((t) => (t.id === id ? updated : t)),
-      });
-      return updated;
-    } catch (err) {
-      set({ error: err.message || "Error al actualizar ticket" });
-      throw err;
+    if (!res.ok) {
+      throw new Error(data.detail || "Error al actualizar ticket");
     }
-  },
+
+    // actualizar en memoria
+    set({
+      tickets: get().tickets.map((t) => (t.id === id ? data : t)),
+      error: null,
+    });
+
+    return data;
+  } catch (err) {
+    set({ error: err?.message || "Error al actualizar ticket" });
+    throw err;
+  }
+},
+
 
   deleteTicket: async (id) => {
-    const { token, tickets } = get();
-    if (!token) throw new Error("No autenticado");
-
     try {
-      const res = await fetch(`${API_URL}/tickets/${id}`, {
+      const res = await get().authFetch(`${API_URL}/tickets/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.detail || "Error al eliminar ticket");
-      }
+      const data = await res.json().catch(() => ({}));
 
-      set({
-        tickets: tickets.filter((t) => t.id !== id),
-      });
+      if (!res.ok) throw new Error(data.detail || "Error al eliminar ticket");
+
+      set({ tickets: get().tickets.filter((t) => t.id !== id), error: null });
     } catch (err) {
-      set({ error: err.message || "Error al eliminar ticket" });
+      set({ error: err?.message || "Error al eliminar ticket" });
       throw err;
     }
   },

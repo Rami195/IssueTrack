@@ -8,6 +8,7 @@ from datetime import datetime
 class Token(BaseModel):
     access_token: str
     token_type: str
+    refresh_token: Optional[str] = None
 
 
 # -------- Users --------

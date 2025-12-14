@@ -1,13 +1,16 @@
 from datetime import datetime, timedelta
 from typing import Optional
-
+import os
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 # Clave y algoritmo para JWT
-SECRET_KEY = "super-secret-key-change-me"  
+SECRET_KEY = os.getenv("SECRET_KEY","dev-insecure-key")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY no está seteada")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 1
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 # Usamos pbkdf2_sha256 
 pwd_context = CryptContext(
@@ -26,29 +29,39 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(
-    data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Crea un JWT con el payload que se pasa en `data`.
-    Se espera que `data` incluya al menos {"sub": username}.
-    """
+def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (
-        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire, "type": "access"})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def create_refresh_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 
 def decode_access_token(token: str) -> Optional[str]:
-    """
-    Decodifica el JWT y devuelve el username (campo `sub`).
-    Si el token es inválido o expiró, devuelve None.
-    """
+ 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: Optional[str] = payload.get("sub")
-        return username
+        if payload.get("type") != "access":
+            return None
+
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+def decode_refresh_token(token: str) -> Optional[str]:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+        # ✅ validar que sea refresh
+        if payload.get("type") != "refresh":
+            return None
+
+        return payload.get("sub")
     except JWTError:
         return None
