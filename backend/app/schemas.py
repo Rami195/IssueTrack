@@ -28,8 +28,7 @@ class UserRead(UserBase):
     is_active: bool
 
     class Config:
-        orm_mode = True
-
+        from_attributes = True
 
 class UserLogin(BaseModel):
     username: str
@@ -73,7 +72,7 @@ class TicketRead(TicketBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class PaginatedTicketResponse(BaseModel):
     items: List[TicketRead]
@@ -102,7 +101,7 @@ class ProjectRead(ProjectBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ProjectWithTickets(ProjectRead):
